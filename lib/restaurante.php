@@ -27,10 +27,12 @@ function fn_menu_opciones($conn)
 {
     $scr_menu = "window.open('?opcion=desplegar_menu', '_top');";
     $scr_pedido = "window.open('?opcion=realizar_pedidos', '_top');";
+    $scr_reserva = "window.open('?opcion=crear_reserva', '_top');";
     $retorno = "<h1>Opciones del programa</h1>"
              . "<div class='MENU_OPCIONES'>"
              . "<button onClick=\"$scr_menu\">Desplegar Menu</button>"
              . "<button onClick=\"$scr_pedido\">Realizar Pedido</button>"
+             . "<button onClick=\"$scr_reserva\">Crear Reserva</button>"
              . "</div>"
              ;
     return $retorno;
@@ -124,6 +126,89 @@ function fn_realizar_pedidos($conn)
         $retorno .= "HACIENDO PEDIDO PARA UNA MESA.".Mostrar($_REQUEST);
     }
 
+    return $retorno;
+}
+
+/*------------------------------------------------------------------*/
+/**
+ * @brief Gestiona la creación de nuevas reservas.
+ * @param resource $conexion_bd Recurso de conexión a la base de datos.
+ * @return string HTML con el formulario para crear una reserva.
+ * @pre La tabla reservaciones debe existir en la base de datos.
+ * @post Permite al usuario ingresar los datos para crear una nueva reserva.
+ */
+function fn_crear_reserva($conn)
+/*--------------------------------------------------------------------*/
+{
+    $retorno = fn_boton_menu_principal()."<br />";
+    $retorno .= "<h1>Crear Nueva Reserva</h1>";
+    $retorno .= "<form method='post' action='?opcion=guardar_reserva'>";
+    $retorno .= "    <label for='fecha'>Fecha:</label><br />";
+    $retorno .= "    <input type='date' name='fecha' id='fecha' required><br /><br />";
+    $retorno .= "    <label for='hora'>Hora:</label><br />";
+    $retorno .= "    <input type='time' name='hora' id='hora' required><br /><br />";
+    $retorno .= "    <label for='mesa_id'>Mesa:</label><br />";
+    $retorno .= "    <select name='mesa_id' id='mesa_id' required>";
+    $retorno .= "        <option value=''>Seleccione una mesa</option>";
+    
+    $sentencia_mesas = "SELECT id, sillas FROM mesas ORDER BY id";
+    $resultado_mesas = procesar_query($sentencia_mesas, $conn);
+    
+    foreach ($resultado_mesas->datos as $mesa) {
+        $retorno .= "        <option value='".$mesa['id']."'>".$mesa['id']."</option>";
+    }
+    
+    $retorno .= "    </select><br /><br />";
+    $retorno .= "    <label for='cliente_nombre'>Nombre del Cliente:</label><br />";
+    $retorno .= "    <input type='text' name='cliente_nombre' id='cliente_nombre' required><br /><br />";
+    $retorno .= "    <label for='telefono'>Teléfono:</label><br />";
+    $retorno .= "    <input type='tel' name='telefono' id='telefono'><br /><br />";
+    $retorno .= "    <input type='submit' value='Crear Reserva'>";
+    $retorno .= "</form>";
+    
+    return $retorno;
+}
+
+/*------------------------------------------------------------------*/
+/**
+ * @brief Guarda una nueva reserva en la base de datos.
+ * @param resource $conexion_bd Recurso de conexión a la base de datos.
+ * @return string HTML con confirmación o error del guardado.
+ * @pre La función fn_crear_reserva debe haber sido llamada primero.
+ * @post La reserva se guarda o muestra un mensaje de error.
+ */
+function fn_guardar_reserva($conn)
+/*--------------------------------------------------------------------*/
+{
+    $retorno = fn_boton_menu_principal()."<br />";
+    
+    if (isset($_POST['fecha'], $_POST['hora'], $_POST['mesa_id'], $_POST['cliente_nombre'])) {
+        $sentencia = "INSERT INTO reservaciones (fecha, hora, mesa_id, cliente_nombre) 
+                      VALUES (?, ?, ?, ?)";
+        
+        try {
+            // Nota: En PHP puro con pg_query, necesitamos usar pg_prepare y pg_execute para consultas parametrizadas
+            // Para mantener la simplicidad del código existente, usaremos una consulta directa
+            $fecha = $_POST['fecha'];
+            $hora = $_POST['hora'];
+            $mesa_id = $_POST['mesa_id'];
+            $cliente_nombre = $_POST['cliente_nombre'];
+            
+            $sentencia_insert = "INSERT INTO reservaciones (fecha, hora, mesa_id, cliente_nombre) 
+                                 VALUES ('$fecha', '$hora', $mesa_id, '$cliente_nombre')";
+            
+            pg_query($conn, $sentencia_insert);
+            $retorno .= "<p style='color: green;'>Reserva creada exitosamente.</p>";
+        } catch (Exception $e) {
+            $retorno .= "<p style='color: red;'>Error al crear la reserva: " . $e->getMessage() . "</p>";
+        }
+    } else {
+        $retorno .= "<p style='color: red;'>Faltan datos para crear la reserva.</p>";
+    }
+    
+    // Redirigir de nuevo al formulario después de guardar
+    $retorno .= "<br /><a href='?opcion=crear_reserva'>Crear otra reserva</a>";
+    
     return $retorno;
 }
 //------------------------------------------------------------
