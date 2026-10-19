@@ -38,6 +38,8 @@ Los cuatro módulos prioritarios están implementados. Se incluye el acceso de e
 
 Las pruebas automatizadas cubren registro y ampliación de pedidos, transiciones, importes, CRUD, cruces, cupo, reenvíos, concurrencia, rutas, permisos, autenticación antigua y moderna, CSRF y escape HTML. También se comprobó el flujo completo sobre la base real dentro de una transacción con ROLLBACK, sin dejar registros de prueba.
 
-La cabecera, pie, colores, clases de carta y estructura de la plantilla se mantienen. Se añadieron controles de formulario y tablas; no se introdujo un framework.
+La primera implementación conservó la plantilla. A petición posterior del usuario se renovó la UX: navegación permanente, colores y tipografía nuevos, diseño adaptable a celular, buscador de clientes dentro del formulario, catálogo filtrable y resumen del pedido. No se introdujo un framework ni se alteraron las reglas de negocio.
 
 Quedan para la segunda etapa acordada: administración completa de mesas y empleados, historial independiente de clientes y notificaciones periódicas. El menú principal ya muestra ítems preparados del mesero conectado cuando se consulta.
+
+La mejora de UX se verificó en Chromium con capturas de escritorio y móvil: login, buscador, filtros, cantidades, errores sin pérdida de datos, envío de pedidos y vistas de 390 y 320 píxeles sin desbordamiento horizontal. Las capturas de prueba utilizan datos ficticios.

@@ -70,3 +70,11 @@ find . -name '*.php' -exec php -l {} \;
 ```
 
 Consulte `AUDITORIA.md` para los defectos originales, las particularidades de la base real y los límites de los datos históricos.
+
+## Mejora de UX
+
+La interfaz utiliza navegación permanente por rol, tarjetas de resumen y diseño adaptable a celular. Los pedidos incluyen búsqueda de clientes por nombre o ID, filtros de platos, controles de cantidad y resumen de selección. El ID manual sigue disponible si no hay JavaScript. Los errores se muestran junto al formulario y conservan sus datos. Los reportes incluyen indicadores y barras de ventas verificadas y estimaciones separadas.
+
+Los assets incluyen una versión en su URL para actualizar la caché del navegador. Para publicar esta versión en Apache ejecute `sudo bash /home/estudiante/restaurante/publicar-apache.sh`; el script incluye el nuevo módulo `lib/ui.php` y guarda un respaldo antes de copiar. No requiere nuevas migraciones.
+
+La prueba opcional `tests/ux_browser.py` usa Playwright/Chromium sobre las fixtures y el servidor temporal del puerto 58080. Comprueba búsqueda de clientes, selección y filtros de platos, conservación del formulario al fallar, envío y ausencia de desbordamiento horizontal en móvil. Sus capturas se guardan en `/tmp/restaurante-ux-capturas`.

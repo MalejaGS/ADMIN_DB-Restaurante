@@ -1,4 +1,5 @@
 """Pruebas HTTP contra la instancia temporal; usar después de integration.php."""
+import json
 import datetime
 import http.cookiejar
 import os
@@ -32,11 +33,16 @@ def ok(value, msg):
     assert value, msg
     print('OK:', msg)
 
+with urllib.request.urlopen(BASE) as probe:
+    assert probe.headers.get('X-Restaurante-Test') == '1', 'El servidor debe apuntar a restaurante_test'
+
 anon = Navegador()
 code, html = anon.page('?opcion=reportes')
 ok(code == 200 and 'Iniciar sesión' in html and '<h1>Reportes' not in html, 'sin sesión no se exponen reportes')
 code, html = anon.page(data={'accion': 'login', 'csrf': 'incorrecto', 'usuario_id': 1, 'clave': 'Restaurante#42'})
 ok(code == 403, 'CSRF inválido rechazado')
+code, html = anon.page('?opcion=buscar_clientes&q=Cliente')
+ok(code == 401, 'buscador de clientes requiere sesión')
 admin = Navegador()
 html = admin.login(1)
 ok('Actualizar Menú' in html, 'login administrador con clave SHA-256')
@@ -55,6 +61,8 @@ ok(code == 200 and 'TOTAL_PEDIDO' in html and 'cantidad[' in html, 'formulario r
 csrf = re.search(r'name="csrf" value="([a-f0-9]+)"', html).group(1)
 code, _ = mesero.page(data={'accion': 'categoria_guardar', 'csrf': csrf, 'token': 'b' * 48, 'nombre': 'No permitido'})
 ok(code == 403, 'permisos aplicados también a POST')
+code, html = mesero.page('?opcion=buscar_clientes&q=Cliente%20dos')
+ok(code == 200 and json.loads(html)[0]['id'] == '7', 'buscar cliente por nombre dentro del formulario')
 maitre = Navegador()
 maitre.login(2)
 code, html = maitre.page('?opcion=reservas')
@@ -66,6 +74,8 @@ cook = Navegador()
 cook.login(4)
 code, html = cook.page('?opcion=cocina')
 ok(code == 200 and 'Preparación de platos' in html, 'pantalla de cocina')
+code, html = cook.page('?opcion=buscar_clientes&q=Cliente')
+ok(code == 403, 'cocinero no consulta datos de clientes')
 code, html = admin.page()
 csrf = re.search(r'name="csrf" value="([a-f0-9]+)"', html).group(1)
 code, html = admin.page(data={'accion': 'logout', 'csrf': csrf})

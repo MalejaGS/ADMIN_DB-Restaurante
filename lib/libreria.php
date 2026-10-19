@@ -46,7 +46,7 @@ function campo($name,$label,$value='',$type='text',$extra='') { return '<label>'
 function oculto($name,$value) { return '<input type="hidden" name="'.h($name).'" value="'.h($value).'">'; }
 function formulario($accion,$contenido,$label='Guardar')
 {
-    return '<form method="post" action="index.php">'.oculto('accion',$accion).oculto('csrf',$_SESSION['csrf']).oculto('token',bin2hex(random_bytes(24))).$contenido.'<button type="submit">'.h($label).'</button></form>';
+    return '<form class="FORMULARIO" data-accion="'.h($accion).'" method="post" action="index.php">'.oculto('accion',$accion).oculto('csrf',$_SESSION['csrf']).oculto('token',bin2hex(random_bytes(24))).$contenido.'<button type="submit"'.(in_array($accion,['reserva_cancelar','plato_eliminar','categoria_eliminar'],true)?' class="PELIGRO"':'').'>'.h($label).'</button></form>';
 }
 function opciones($rows,$value,$label,$selected=null,$empty=true)
 {
@@ -56,7 +56,7 @@ function opciones($rows,$value,$label,$selected=null,$empty=true)
 }
 function tabla($headers,$rows)
 {
-    if (!$rows) return '<p>No hay resultados para esta consulta.</p>';
+    if (!$rows) return '<div class="VACIO"><strong>No hay resultados para esta consulta.</strong><p>Prueba con otra fecha o ajusta los filtros.</p></div>';
     $s='<div class="TABLA"><table><thead><tr>';
     foreach($headers as $v) $s.='<th>'.h($v).'</th>';
     $s.='</tr></thead><tbody>';

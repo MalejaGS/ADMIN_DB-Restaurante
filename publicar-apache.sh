@@ -6,7 +6,7 @@ if [ "$(id -u)" -ne 0 ]; then
     echo 'Ejecute: sudo bash /home/estudiante/restaurante/publicar-apache.sh' >&2
     exit 1
 fi
-archivos=(etc/parametros.php lib/libreria.php lib/auth.php lib/pedidos.php lib/reservas.php lib/menu.php lib/reportes.php lib/restaurante.php lib/programa.js css/estilo.css esqueleto.html index.php)
+archivos=(etc/parametros.php lib/libreria.php lib/auth.php lib/pedidos.php lib/reservas.php lib/menu.php lib/reportes.php lib/restaurante.php lib/ui.php lib/programa.js css/estilo.css esqueleto.html index.php)
 for archivo in "${archivos[@]}"; do
     test -f "$origen/$archivo"
     if [[ "$archivo" == *.php ]]; then php -l "$origen/$archivo" >/dev/null; fi
@@ -19,8 +19,6 @@ chmod 600 "$respaldo"
 for archivo in "${archivos[@]}"; do
     install -D -o root -g root -m 0644 "$origen/$archivo" "$destino/$archivo"
 done
-# Retirar únicamente el módulo que introdujo el rediseño revertido.
-if [ -f "$destino/lib/ui.php" ]; then rm -- "$destino/lib/ui.php"; fi
 if command -v restorecon >/dev/null 2>&1; then restorecon -R "$destino"; fi
 respuesta=$(curl --noproxy '*' --fail --silent --show-error http://127.0.0.1/restaurante/index.php)
 if [[ "$respuesta" != *'Iniciar sesión'* ]]; then

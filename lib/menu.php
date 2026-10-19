@@ -2,7 +2,7 @@
 function fn_desplegar_menu($conn)
 {
     $rows=filas($conn,'SELECT p.*,t.nombre AS tipo FROM platos p JOIN tipos t ON t.id=p.tipo_id WHERE p.activo ORDER BY t.id,p.nombre');
-    $s='<h1>Menú</h1>';$tipo=null;
+    $s=encabezado('La carta de Urbano','Todo lo que sale de nuestra cocina. Explora los platos disponibles por categoría.','Nuestra cocina');$tipo=null;
     foreach($rows as $p) {
         if ($tipo!==$p['tipo_id']) {
             if ($tipo!==null) $s.='</div>';
@@ -101,12 +101,12 @@ function fn_gestion_menu($conn)
     $autorizados=$p?array_column(filas($conn,'SELECT cocinero_id FROM especialidades WHERE plato_id=$1',[$p['id']]),'cocinero_id'):[];
     $c=oculto('id',$p['id']??'').campo('nombre','Nombre',$p['nombre']??'','text','required maxlength="150"').'<label>Descripción <textarea name="descripcion" required maxlength="2000">'.h($p['descripcion']??'').'</textarea></label><label>Categoría <select name="tipo_id" required>'.opciones($tipos,'id','nombre',$p['tipo_id']??null).'</select></label>'.campo('precio','Precio',$p['precio']??'0','number','required min="0" step="0.01"').campo('minutos','Preparación (minutos)',isset($p['minutos'])?(int)ceil($p['minutos']):0,'number','required min="0" max="1440"').'<label><input type="checkbox" name="activo" value="1"'.(!$p||$p['activo']==='t'?' checked':'').'> Disponible en el menú</label><fieldset><legend>Cocineros autorizados</legend>';
     foreach($cocineros as $co) $c.='<label><input type="checkbox" name="cocineros[]" value="'.(int)$co['id'].'"'.(in_array($co['id'],$autorizados,true)?' checked':'').'>'.h($co['nombre']).'</label>';
-    $s='<h1>Gestión del menú</h1><h2>'.($p?'Actualizar plato':'Agregar plato').'</h2>'.formulario('plato_guardar',$c.'</fieldset>');
+    $s=encabezado('Gestión del menú','Mantén tu carta al día: platos, precios, disponibilidad y especialidades.','Administración').'<h2>'.($p?'Actualizar plato':'Agregar plato').'</h2>'.formulario('plato_guardar',$c.'</fieldset>');
     if ($p) $s.=enlace('Agregar otro plato','gestion_menu');
     $rows=filas($conn,'SELECT p.*,t.nombre AS tipo FROM platos p JOIN tipos t ON t.id=p.tipo_id ORDER BY t.nombre,p.nombre');
     $data=[];
-    foreach($rows as $r) $data[]=[h($r['nombre']),h($r['tipo']),h(dinero($r['precio'])),h($r['tiempo']),$r['activo']==='t'?'Activo':'Inactivo',enlace('Editar','gestion_menu',['id'=>$r['id']]).formulario('plato_eliminar',oculto('id',$r['id']),'Eliminar / desactivar')];
-    $s.=tabla(['Plato','Categoría','Precio','Tiempo','Disponibilidad','Acciones'],$data).'<h2>Categorías</h2>';
+    foreach($rows as $r) $data[]=[h($r['nombre']),h($r['tipo']),h(dinero($r['precio'])),h($r['tiempo']),insignia($r['activo']==='t'?'Activo':'Inactivo'),enlace('Editar','gestion_menu',['id'=>$r['id']]).formulario('plato_eliminar',oculto('id',$r['id']),'Eliminar / desactivar')];
+    $s.='<h2>Tu carta</h2><div class="FILTRO_TABLA"><input class="BUSCAR_TABLA" type="search" placeholder="Buscar plato o categoría…" aria-label="Filtrar platos"><span>Filtra la lista sin salir de esta pantalla</span></div>'.tabla(['Plato','Categoría','Precio','Tiempo','Disponibilidad','Acciones'],$data).'<h2>Categorías</h2>';
     $data=[];
     foreach($tipos as $t) $data[]=[h($t['nombre']),formulario('categoria_guardar',oculto('id',$t['id']).campo('nombre','Nombre',$t['nombre'],'text','required maxlength="100"'),'Actualizar'),formulario('categoria_eliminar',oculto('id',$t['id']),'Eliminar')];
     return $s.tabla(['Categoría','Modificar','Eliminar'],$data).'<h3>Nueva categoría</h3>'.formulario('categoria_guardar',campo('nombre','Nombre','','text','required maxlength="100"'));

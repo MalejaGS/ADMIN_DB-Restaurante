@@ -22,5 +22,6 @@ function login($conn)
 }
 function fn_login($conn)
 {
-    return '<h1>Iniciar sesión</h1>'.formulario('login',campo('usuario_id','ID de usuario','','number','min="1" required').campo('clave','Contraseña','','password','required autocomplete="current-password"'),'Entrar');
+    $campos=campo('usuario_id','ID de usuario','','number','min="1" required autocomplete="username" placeholder="Ingresa tu ID"').'<label>Contraseña<span class="CLAVE_CONTROL"><input type="password" name="clave" aria-label="Contraseña" required autocomplete="current-password" placeholder="Tu contraseña"><button type="button" class="VER_CLAVE" aria-label="Mostrar contraseña">Mostrar</button></span></label>';
+    return '<div class="ACCESO"><section class="ACCESO_PRESENTACION">'.marca().'<div><span class="ETIQUETA">Menos vueltas. Mejor servicio.</span><h2>El ritmo de tu cocina,<br>en un solo lugar.</h2><p>Del primer plato a la última mesa. Organiza el servicio y mantén a tu equipo conectado.</p></div><span class="ACCESO_FOOT">Universidad Javeriana · Bases de datos</span></section><section class="ACCESO_PANEL"><div class="ACCESO_FORM"><span class="ETIQUETA">Bienvenido a Urbano</span><h1>Iniciar sesión</h1><p>Entra a tu espacio de trabajo para comenzar.</p>'.formulario('login',$campos,'Entrar a mi espacio').'<p class="AYUDA">Usa el ID y la contraseña asignados a tu cuenta. Si no los recuerdas, consulta con el administrador.</p></div></section></div>';
 }
