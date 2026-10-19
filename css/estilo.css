@@ -122,3 +122,18 @@ footer * {
     vertical-align: middle;
     margin-left:    35px;
 }
+/* Controles funcionales: se conservan los colores y la estructura de la plantilla. */
+form { margin: 12px 0; }
+label { display: inline-block; margin: 8px; vertical-align: middle; }
+input, select, textarea, button { font: inherit; }
+textarea { vertical-align: middle; }
+input[type=number] { width: 100px; }
+button { cursor: pointer; }
+fieldset { margin: 12px 0; }
+.TABLA { overflow-x: auto; }
+table { border-collapse: collapse; margin: 15px auto; width: 100%; }
+th, td { border-bottom: 1px dotted grey; padding: 8px; }
+td a { font-size: 1em; margin: 4px; padding: 6px; }
+.SESION form { display: inline-block; margin-left: 12px; }
+[role=alert] { color: #8b0000; }
+[role=status] { color: #006400; }

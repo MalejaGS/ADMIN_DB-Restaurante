@@ -1,59 +1,97 @@
 <?php
-
-/*------------------------------------------------------------------*/
-/**
- * @brief Establece una conexión con una base de datos PostgreSQL.
- * @param string $anfitrion Dirección del servidor de base de datos (host).
- * @param string $nombre_bd Nombre de la base de datos.
- * @param string $usuario Nombre del usuario de la base de datos.
- * @return resource Recurso de la conexión establecida.
- * @pre El servicio de PostgreSQL debe estar activo y accesible.
- * @post Si la conexión falla, el script termina su ejecución.
- */
-function pg_conectar($host, $dbname, $user)
-/*--------------------------------------------------------------------*/
+function pg_conectar($host, $dbname, $user, $port = '5432')
 {
-    $conn = pg_connect("host=$host dbname=$dbname user=$user");
-    if (!$conn)
-        die("Error de conexión: ");//.pg_last_error());
-
+    $quote = function ($s) { return "'".str_replace(['\\', "'"], ['\\\\', "\\'"], $s)."'"; };
+    $conn = @pg_connect('host='.$quote($host).' dbname='.$quote($dbname).' user='.$quote($user).' port='.$quote($port).' connect_timeout=5');
+    if (!$conn) throw new RuntimeException('No se pudo conectar con PostgreSQL. Revise PGHOST, PGPORT, PGDATABASE, PGUSER y PGPASSWORD.');
+    db($conn, "SET TIME ZONE 'America/Bogota'");
     return $conn;
 }
-
-/*------------------------------------------------------------------*/
-/**
- * @brief Formatea una variable para su visualización en depuración.
- * @param mixed $variable La variable, arreglo u objeto a inspeccionar.
- * @return string Cadena con la estructura de la variable dentro de etiquetas <pre>.
- * @pre Ninguna.
- * @post Devuelve el volcado de la variable como texto HTML.
- */
-function Mostrar($variable)
-/*--------------------------------------------------------------------*/
+function db($conn, $sql, $params = [])
 {
-    $retorno = "<pre>".var_export($variable, true)."</pre>";
-    return $retorno;
-}
-
-/*------------------------------------------------------------------*/
-/**
- * @brief Ejecuta una sentencia SQL y devuelve los resultados en un objeto.
- * @param string $sentencia Consulta SQL a ejecutar.
- * @param resource $conexion Recurso de la conexión activa.
- * @return object Objeto que contiene la 'cantidad' de registros y los 'datos'.
- * @pre La conexión debe estar abierta y la sentencia ser válida.
- * @post Se libera la memoria de la consulta implícitamente al retornar.
- */
-function procesar_query($sentencia, $conexion)
-/*--------------------------------------------------------------------*/
-{
-    $retorno = array();
-    $respuesta = pg_query($conexion, $sentencia);
-    $Qregistros = pg_num_rows($respuesta);
-    for ($i = 0; $i < $Qregistros; $i ++) {
-        // $fila = pg_fetch_row($respuesta, $i);
-        $retorno[] = pg_fetch_array($respuesta, $i, PGSQL_ASSOC);
+    $r = @pg_query_params($conn, $sql, $params);
+    if ($r === false) {
+        error_log('Restaurante SQL: '.pg_last_error($conn));
+        throw new RuntimeException('No se pudo completar la operación en la base de datos.');
     }
-    return (object) array('cantidad' => $Qregistros, 'datos' => $retorno);
+    return $r;
 }
-?>
+function filas($conn, $sql, $params = []) { return pg_fetch_all(db($conn, $sql, $params)) ?: []; }
+function fila($conn, $sql, $params = []) { return pg_fetch_assoc(db($conn, $sql, $params)) ?: null; }
+function procesar_query($sql, $conn, $params = []) { $d=filas($conn,$sql,$params); return (object)['cantidad'=>count($d),'datos'=>$d]; }
+function h($value) { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+function Mostrar($value) { return '<pre>'.h(var_export($value,true)).'</pre>'; }
+function entero($value, $nombre = 'Identificador', $min = 1)
+{
+    if (!is_scalar($value) || filter_var($value,FILTER_VALIDATE_INT) === false || (int)$value < $min || (int)$value > 2147483647)
+        throw new DomainException($nombre.' inválido.');
+    return (int)$value;
+}
+function texto($value, $nombre, $max = 500)
+{
+    if (!is_string($value) || trim($value)==='' || mb_strlen(trim($value))>$max) throw new DomainException($nombre.' es obligatorio (máximo '.$max.' caracteres).');
+    return trim($value);
+}
+function fecha($value)
+{
+    if (!is_string($value)) throw new DomainException('Fecha inválida.');
+    $d=DateTimeImmutable::createFromFormat('!Y-m-d',$value);
+    if (!$d || $d->format('Y-m-d')!==$value) throw new DomainException('Fecha inválida.');
+    return $value;
+}
+function dinero($value) { return '$'.number_format((float)$value,2,',','.'); }
+function url($opcion = '', $params = []) { return '?'.http_build_query(['opcion'=>$opcion]+$params); }
+function enlace($label,$opcion='',$params=[]) { return '<a href="'.h(url($opcion,$params)).'">'.h($label).'</a>'; }
+function campo($name,$label,$value='',$type='text',$extra='') { return '<label>'.h($label).' <input type="'.h($type).'" name="'.h($name).'" value="'.h($value).'" '.$extra.'></label>'; }
+function oculto($name,$value) { return '<input type="hidden" name="'.h($name).'" value="'.h($value).'">'; }
+function formulario($accion,$contenido,$label='Guardar')
+{
+    return '<form method="post" action="index.php">'.oculto('accion',$accion).oculto('csrf',$_SESSION['csrf']).oculto('token',bin2hex(random_bytes(24))).$contenido.'<button type="submit">'.h($label).'</button></form>';
+}
+function opciones($rows,$value,$label,$selected=null,$empty=true)
+{
+    $s=$empty?'<option value="">Seleccione</option>':'';
+    foreach($rows as $r) $s.='<option value="'.h($r[$value]).'"'.((string)$selected===(string)$r[$value]?' selected':'').'>'.h($r[$label]).'</option>';
+    return $s;
+}
+function tabla($headers,$rows)
+{
+    if (!$rows) return '<p>No hay resultados para esta consulta.</p>';
+    $s='<div class="TABLA"><table><thead><tr>';
+    foreach($headers as $v) $s.='<th>'.h($v).'</th>';
+    $s.='</tr></thead><tbody>';
+    foreach($rows as $r) { $s.='<tr>'; foreach($r as $v) $s.='<td>'.$v.'</td>'; $s.='</tr>'; }
+    return $s.'</tbody></table></div>';
+}
+function redirigir($destino) { header('Location: '.$destino, true, 303); exit; }
+function roles_usuario($conn,$id)
+{
+    return array_column(filas($conn,'SELECT r.nombre FROM actuaciones a JOIN roles r ON r.id=a.rol_id JOIN usuarios u ON u.id=a.usuario_id WHERE a.usuario_id=$1 AND u.activo',[$id]),'nombre');
+}
+function puede(...$roles) { return (bool)array_intersect($roles,$_SESSION['roles']??[]); }
+function exigir(...$roles) { if (!puede(...$roles)) { http_response_code(403); throw new DomainException('No tiene permiso para esta operación.'); } }
+function cliente_valido($conn,$id)
+{
+    if (!fila($conn,"SELECT u.id FROM usuarios u JOIN actuaciones a ON a.usuario_id=u.id JOIN roles r ON r.id=a.rol_id WHERE u.id=$1 AND u.activo AND r.nombre='Cliente'",[$id])) throw new DomainException('Seleccione un cliente activo.');
+}
+// Idempotencia persistente: cada formulario de escritura se consume una sola vez.
+// El bloqueo transaccional serializa dos envíos simultáneos del mismo token.
+function operacion($conn,$accion,$callback)
+{
+    $token=$_POST['token']??'';
+    if (!is_string($token) || !preg_match('/^[a-f0-9]{48}$/D',$token)) throw new DomainException('Formulario inválido. Recargue la página.');
+    db($conn,'BEGIN');
+    try {
+        db($conn,'SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[$token]);
+        $prev=fila($conn,'SELECT * FROM restaurante_operaciones WHERE token=$1',[$token]);
+        if ($prev) {
+            if ((int)$prev['usuario_id']!==$_SESSION['usuario_id'] || $prev['accion']!==$accion) throw new DomainException('Formulario inválido.');
+            $destino=$prev['destino'];
+        } else {
+            $destino=$callback();
+            db($conn,'INSERT INTO restaurante_operaciones(token,usuario_id,accion,destino) VALUES($1,$2,$3,$4)',[$token,$_SESSION['usuario_id'],$accion,$destino]);
+        }
+        db($conn,'COMMIT');
+        return $destino;
+    } catch (Throwable $e) { @pg_query($conn,'ROLLBACK'); throw $e; }
+}
