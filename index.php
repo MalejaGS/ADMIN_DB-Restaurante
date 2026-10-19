@@ -10,8 +10,6 @@ if (empty($_SESSION['csrf'])) $_SESSION['csrf']=bin2hex(random_bytes(32));
 header('Content-Type: text/html; charset=UTF-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
-header('Cache-Control: no-store');
-if ($dbname==='restaurante_test') header('X-Restaurante-Test: 1');
 $conn=null;$contenido='';
 try {
     $conn=pg_conectar($host,$dbname,$user,$port);
@@ -38,13 +36,6 @@ try {
         $_SESSION['aviso']='Operación guardada correctamente.';
         redirigir($destino);
     }
-    if (($_GET['opcion']??'')==='buscar_clientes') {
-        if (!isset($_SESSION['usuario_id'])) { http_response_code(401);header('Content-Type: application/json; charset=UTF-8');echo json_encode(['error'=>'Inicie sesión']);exit; }
-        $clientes=buscar_clientes($conn);
-        header('Content-Type: application/json; charset=UTF-8');
-        header('Cache-Control: no-store');
-        echo json_encode($clientes,JSON_UNESCAPED_UNICODE|JSON_HEX_TAG|JSON_HEX_AMP);exit;
-    }
     if (!isset($_SESSION['usuario_id'])) $contenido=fn_login($conn);
     else {
         $rutas=[''=>'fn_menu_opciones','desplegar_menu'=>'fn_desplegar_menu','realizar_pedidos'=>'fn_realizar_pedidos','pedido'=>'fn_pedido','reservas'=>'fn_reservas','clientes'=>'fn_clientes','gestion_menu'=>'fn_gestion_menu','reportes'=>'fn_reportes','cocina'=>'fn_cocina'];
@@ -54,12 +45,14 @@ try {
     }
 } catch (DomainException $e) {
     if (http_response_code()<400) http_response_code(422);
-    $contenido='<p role="alert">'.h($e->getMessage()).'</p><p>No se guardaron cambios. Puedes volver al formulario y corregir los datos.</p><button class="SECUNDARIO" onclick="history.back()">Volver al formulario</button>';
+    $contenido='<p role="alert">'.h($e->getMessage()).'</p><p>Los cambios de este formulario no se guardaron. Regrese con el navegador para corregirlos.</p>';
 } catch (Throwable $e) {
     http_response_code(503);
     error_log('Restaurante: '.$e->getMessage());
     $mensaje=$conn===null?$e->getMessage():'No se pudo completar la operación. Revise la conexión y que la migración esté aplicada.';
     $contenido='<p role="alert">'.h($mensaje).'</p>';
 }
-if (isset($_SESSION['aviso'])) { $contenido='<p role="status">'.h($_SESSION['aviso']).'</p>'.$contenido;unset($_SESSION['aviso']); }
-print sprintf(file_get_contents(__DIR__.'/esqueleto.html'),layout($contenido));
+$barra='';
+if (isset($_SESSION['usuario_id'])) $barra='<div class="SESION"><p>'.h($_SESSION['nombre']).' · '.h(implode(', ',$_SESSION['roles'])).'</p>'.fn_boton_menu_principal().formulario('logout','','Cerrar sesión').'</div>';
+if (isset($_SESSION['aviso'])) { $barra.='<p role="status">'.h($_SESSION['aviso']).'</p>';unset($_SESSION['aviso']); }
+print sprintf(file_get_contents(__DIR__.'/esqueleto.html'),$barra.$contenido);

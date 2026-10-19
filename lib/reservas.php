@@ -70,7 +70,7 @@ function fn_reservas($conn)
 {
     exigir('Maitre','Administrador');
     $dia=fecha($_GET['fecha']??date('Y-m-d'));
-    $s=encabezado('Reservaciones','Organiza las visitas, consulta disponibilidad y encuentra la mesa indicada.').'<form method="get">'.oculto('opcion','reservas').campo('fecha','Fecha',$dia,'date','required').'<button>Consultar</button></form>';
+    $s='<h1>Reservaciones</h1><form method="get">'.oculto('opcion','reservas').campo('fecha','Fecha',$dia,'date','required').'<button>Consultar</button></form>';
     $consulta=isset($_GET['inicio_consulta'])?inicio_reserva($_GET['inicio_consulta']):null;
     $personas=isset($_GET['personas_consulta'])?entero($_GET['personas_consulta'],'Personas'):1;
     $s.='<details'.($consulta?' open':'').'><summary>Consultar disponibilidad</summary><form method="get">'.oculto('opcion','reservas').oculto('fecha',$dia).campo('inicio_consulta','Inicio',isset($_GET['inicio_consulta'])?$_GET['inicio_consulta']:(new DateTimeImmutable('+1 hour'))->format('Y-m-d\TH:i'),'datetime-local','required').campo('personas_consulta','Personas',$personas,'number','min="1" required').'<button>Consultar mesas</button></form>';
@@ -100,7 +100,7 @@ function fn_reservas($conn)
     foreach($rows as $row) {
         $acciones='';
         if (in_array((int)$row['estado'],[1,2],true)) $acciones=enlace('Modificar','reservas',['id'=>$row['id'],'fecha'=>$dia]).formulario('reserva_cancelar',oculto('id',$row['id']),'Cancelar reserva');
-        $data[]=[h($row['id']),h($row['nombre']),h($row['mesa_id']),h($row['inicio']),h($row['cantidad']),insignia($estados[$row['estado']]),$acciones];
+        $data[]=[h($row['id']),h($row['nombre']),h($row['mesa_id']),h($row['inicio']),h($row['cantidad']),h($estados[$row['estado']]),$acciones];
     }
     $s.=tabla(['Reserva','Cliente','Mesa','Inicio','Personas','Estado','Acciones'],$data);
     $cupo=fila($conn,'SELECT COALESCE(sum(sillas),0) AS total FROM mesas');
@@ -130,7 +130,7 @@ function fn_clientes($conn)
     if (mb_strlen($q)>150) throw new DomainException('Búsqueda demasiado larga.');
     $id=isset($_GET['id'])?entero($_GET['id'],'Cliente'):null;
     $rows=filas($conn,"SELECT u.id,u.nombre FROM usuarios u WHERE u.activo AND EXISTS(SELECT 1 FROM actuaciones a JOIN roles r ON r.id=a.rol_id WHERE a.usuario_id=u.id AND r.nombre='Cliente') AND ($1::text='' OR u.nombre ILIKE '%'||$1||'%') AND ($2::integer IS NULL OR u.id=$2) ORDER BY u.nombre,u.id LIMIT 100",[$q,$id]);
-    $s=encabezado('Clientes','Encuentra a tus clientes o registra a quienes nos visitan por primera vez.').'<form method="get">'.oculto('opcion','clientes').campo('q','Buscar por nombre',$q).'<button>Buscar</button></form>'.tabla(['ID','Nombre'],array_map(function($r){return [h($r['id']),h($r['nombre'])];},$rows)).'<p>Hasta 100 resultados; refine la búsqueda si es necesario.</p>';
-    if (puede('Administrador','Maitre')) $s.='<details><summary>Registrar un cliente nuevo</summary>'.formulario('cliente_guardar',campo('nombre','Nombre','','text','maxlength="150" required'),'Registrar cliente').'</details>';
+    $s='<h1>Clientes</h1><form method="get">'.oculto('opcion','clientes').campo('q','Buscar por nombre',$q).'<button>Buscar</button></form>'.tabla(['ID','Nombre'],array_map(function($r){return [h($r['id']),h($r['nombre'])];},$rows)).'<p>Hasta 100 resultados; refine la búsqueda si es necesario.</p>';
+    if (puede('Administrador','Maitre')) $s.='<h2>Registrar cliente</h2>'.formulario('cliente_guardar',campo('nombre','Nombre','','text','maxlength="150" required'));
     return $s;
 }
