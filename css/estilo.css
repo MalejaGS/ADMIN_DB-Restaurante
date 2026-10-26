@@ -1,144 +1,761 @@
-@font-face {
-    font-family:        fuente_delgada;
-    font-style:         normal;
-    font-weight:        normal;
-    src:                url('../ttf/Antonio-Regular.ttf');
-}
-@font-face {
-    font-family:        fuente_regular;
-    font-style:         normal;
-    font-weight:        normal;
-    src:                local('Trebuchet MS');
-}
-@font-face {
-    font-family:        fuente_decorativa;
-    font-style:         normal;
-    font-weight:        normal;
-    src:                url('../ttf/dreamporp.ttf');
-}
-body {
-    background:         cyan;
-    padding:            15%;
-    padding-top:        10px;
-    text-align:         center;
-    background:         blue;
-    background:         linear-gradient( to top right
-                                       , navy
-                                       , blue
-                                       , cyan
-                                       ); /* https://css-tricks.com/css3-gradients/ */
-    font-family:        fuente_decorativa;
-}
-body * {
-    font-family:        fuente_regular;
-}
-a, input[type=submit] {
-    display:            inline-block;
-    background:         white;
-    color:              navy;
-    font-size:          1.5em;
-    margin:             15px;
-    border:             3px solid black;
-    padding:            15px;
-    border-radius:      5px;
-    text-decoration:    none;
-}
-a.PESTANHA {
-    background:         navy;
-    color:              cyan;
-    font-size:          1em;
-    border:             1px solid black;
-    border:             0px;
-    border-bottom:      1px solid navy;
-    border-radius:      15px 15px 0px 0px;
-    margin-bottom:      0px;
-}
-a.ACTIVA {
-    background:         white;
-    color:              navy;
-    border-bottom:      0px;
-    font-size:          1.3em;
-}
-header {
-    background:         cyan;
-    border-radius:      15px 15px 0px 0px;
-    padding:            15px;
-    font-size:          2em;
-}
-main {
-    background:         white;
-    border:             0px;
-    border-radius:      0px 0px 15px 15px;
-    padding:            25px;
-}
-footer * {
-    display:            inline-block;
-    background:         white;
-    margin:             5px;
-    margin-top:         0px;
-    border-radius:      0px 0px 5px 5px;
-    padding:            5px;
-}
-.MENU_OPCIONES button {
-	height:		100px;
-	width:		100px;
-	margin:		10px;
-	font-size:	large;
-}
-.SECCION {
-	display:	inline-block;
-	margin:		10px;
-	border:		3px solid grey;
-	border-radius:	10px;
-	padding:	5px;
-	vertical-align: top;
-}
-.PLATO {
-	text-align:	center;
-	border-bottom:	1px dotted black;
-}
-.PLATO .TIPO {
-	display: inline-block;
-	text-align:	left;
-	width:		145px;
-}
-.PLATO .NOMBRE {
-	display: inline-block;
-	text-align:	left;
-	width:		145px;
-    vertical-align: middle;
-}
-.PLATO .DESCRIPCION {
-	display: inline-block;
-	text-align:	left;
-	width:		145px;
-	font-size:	small;
-    vertical-align: middle;
-}
-.PLATO .PRECIO {
-	font-size:   	1.2em;
-    vertical-align: middle;
-    margin-left:    35px;
-}
-/* Controles funcionales: se conservan los colores y la estructura de la plantilla. */
-form { margin: 12px 0; }
-label { display: inline-block; margin: 8px; vertical-align: middle; }
-input, select, textarea, button { font: inherit; }
-textarea { vertical-align: middle; }
-input[type=number] { width: 100px; }
-button { cursor: pointer; }
-fieldset { margin: 12px auto; max-width: 800px; text-align: left; border: 1px solid grey; border-radius: 6px; padding: 12px; }
-legend { font-weight: bold; padding: 0 6px; }
-.CHECKBOX_GRUPO { display: inline-block; margin: 4px 10px; font-size: 0.95em; vertical-align: middle; }
-.RESUMEN_CLIENTE { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin: 15px 0; }
-.RESUMEN_CARD { border: 2px solid navy; border-radius: 8px; padding: 12px 18px; min-width: 140px; background: #f0f8ff; }
-.RESUMEN_CARD span { display: block; font-size: 0.85em; color: #333; margin-bottom: 4px; }
-.RESUMEN_CARD strong { font-size: 1.3em; color: navy; }
-.TABLA { overflow-x: auto; }
-table { border-collapse: collapse; margin: 15px auto; width: 100%; }
-th, td { border-bottom: 1px dotted grey; padding: 8px; }
-td a { font-size: 1em; margin: 4px; padding: 6px; }
-.SESION form { display: inline-block; margin-left: 12px; }
-[role=alert] { color: #8b0000; }
-[role=status] { color: #006400; }
+/* ==========================================================================
+   Restaurante Urbano - Urban Fine Dining & Gastrobar Design System
+   Tipografía: 'Syne' (stretched / expanded) + 'Outfit' (sans-serif redondeada)
+   Paleta: Grises carbón profundo y pizarra con acentos en amarillo dorado urbano
+   ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+
+:root {
+    --bg-dark: #0f1013;
+    --bg-surface: #181b21;
+    --bg-surface-elevated: #222630;
+    --bg-surface-hover: #2a2f3b;
+    --border-color: #2e3442;
+    --border-color-light: #3e4657;
+    --accent-yellow: #f5b700;
+    --accent-yellow-hover: #ffc82c;
+    --accent-yellow-subtle: rgba(245, 183, 0, 0.12);
+    --accent-yellow-glow: rgba(245, 183, 0, 0.3);
+    --text-primary: #f5f6f8;
+    --text-secondary: #9ea5b4;
+    --text-muted: #6b7280;
+    --text-on-accent: #0f1013;
+    --danger: #ef4444;
+    --danger-subtle: rgba(239, 68, 68, 0.15);
+    --success: #10b981;
+    --success-subtle: rgba(16, 185, 129, 0.15);
+    --font-heading: 'Syne', sans-serif;
+    --font-body: 'Outfit', sans-serif;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
+    --shadow-accent: 0 4px 16px rgba(245, 183, 0, 0.28);
+}
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(circle at 50% 0%, #252a35 0%, transparent 75%),
+        linear-gradient(180deg, #121418 0%, #0c0d10 100%);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 0;
+    padding: 30px 15px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+body * {
+    font-family: var(--font-body);
+}
+
+/* ==========================================================================
+   Header & Brand
+   ========================================================================== */
+header {
+    width: 100%;
+    max-width: 1100px;
+    background: linear-gradient(135deg, #1b1e26 0%, #14161c 100%);
+    border: 1px solid var(--border-color);
+    border-bottom: 3px solid var(--accent-yellow);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 24px 30px;
+    text-align: center;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.HEADER_BRAND {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.BRAND_MAIN {
+    font-family: var(--font-heading);
+    font-size: 2.2em;
+    font-weight: 800;
+    letter-spacing: 0.25em;
+    color: var(--accent-yellow);
+    text-shadow: 0 2px 10px var(--accent-yellow-glow);
+    text-transform: uppercase;
+}
+
+.BRAND_SUB {
+    font-family: var(--font-heading);
+    font-size: 0.85em;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+/* ==========================================================================
+   Main Content Container
+   ========================================================================== */
+main {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-bottom: none;
+    padding: 35px 30px;
+    box-shadow: var(--shadow-card);
+}
+
+article {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+footer {
+    width: 100%;
+    max-width: 1100px;
+    background: #111317;
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    padding: 18px 24px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+footer section {
+    display: inline-block;
+    color: var(--text-muted);
+    font-size: 0.88em;
+    margin: 4px 15px;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   Typography & Headings
+   ========================================================================== */
+h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 1.4em;
+    margin-bottom: 0.8em;
+}
+
+h1 {
+    font-size: 1.85em;
+    color: var(--accent-yellow);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-top: 0.4em;
+}
+
+h2 {
+    font-size: 1.35em;
+    color: var(--text-primary);
+    border-left: 3px solid var(--accent-yellow);
+    padding-left: 12px;
+    text-align: left;
+}
+
+h3 {
+    font-size: 1.1em;
+    color: var(--accent-yellow-hover);
+    text-align: left;
+}
+
+p {
+    color: var(--text-secondary);
+    margin: 12px 0;
+}
+
+strong {
+    color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Buttons & Links
+   ========================================================================== */
+button, input[type=submit], a.BTN {
+    display: inline-block;
+    font-family: var(--font-body);
+    font-size: 0.95em;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background: var(--accent-yellow);
+    color: var(--text-on-accent);
+    padding: 10px 20px;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    vertical-align: middle;
+}
+
+button:hover, input[type=submit]:hover, a.BTN:hover {
+    background: var(--accent-yellow-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-accent);
+}
+
+button:active, input[type=submit]:active {
+    transform: translateY(0);
+}
+
+a {
+    color: var(--accent-yellow);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.15s ease;
+}
+
+a:hover {
+    color: var(--accent-yellow-hover);
+    text-decoration: underline;
+}
+
+/* Secondary Button Style */
+.BTN_SECUNDARIO, button[type=button] {
+    background: var(--bg-surface-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color-light);
+}
+
+.BTN_SECUNDARIO:hover, button[type=button]:hover {
+    background: var(--bg-surface-hover);
+    border-color: var(--accent-yellow);
+    color: var(--accent-yellow);
+    box-shadow: none;
+}
+
+/* ==========================================================================
+   Session Bar
+   ========================================================================== */
+.SESION {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 10px 18px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.SESION p {
+    margin: 0;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.SESION button {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    font-size: 0.85em;
+    box-shadow: none;
+}
+
+.SESION button:hover {
+    background: var(--danger-subtle);
+    color: var(--danger);
+    border-color: var(--danger);
+    transform: none;
+}
+
+/* ==========================================================================
+   Navigation Menu Grid
+   ========================================================================== */
+.MENU_OPCIONES {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    margin: 25px 0 35px 0;
+}
+
+.MENU_OPCIONES button {
+    font-family: var(--font-heading);
+    font-size: 0.9em;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 600;
+    width: auto;
+    min-width: 170px;
+    height: auto;
+    padding: 16px 20px;
+    background: var(--bg-surface-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.MENU_OPCIONES button:hover {
+    background: var(--bg-surface-hover);
+    color: var(--accent-yellow);
+    border-color: var(--accent-yellow);
+    box-shadow: 0 6px 20px rgba(245, 183, 0, 0.18);
+    transform: translateY(-3px);
+}
+
+/* ==========================================================================
+   Summary Cards (.RESUMEN_CLIENTE & .RESUMEN_CARD)
+   ========================================================================== */
+.RESUMEN_CLIENTE {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.RESUMEN_CARD {
+    flex: 1 1 200px;
+    max-width: 250px;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-top: 3px solid var(--accent-yellow);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    text-align: left;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.RESUMEN_CARD:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-yellow);
+}
+
+.RESUMEN_CARD span {
+    display: block;
+    font-size: 0.8em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+.RESUMEN_CARD strong {
+    font-family: var(--font-heading);
+    font-size: 1.5em;
+    font-weight: 700;
+    color: var(--accent-yellow);
+}
+
+/* ==========================================================================
+   Tables (.TABLA)
+   ========================================================================== */
+.TABLA {
+    overflow-x: auto;
+    margin: 20px 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-elevated);
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0;
+    text-align: left;
+}
+
+th {
+    font-family: var(--font-heading);
+    font-size: 0.85em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    background: #15171d;
+    color: var(--accent-yellow);
+    padding: 14px 16px;
+    border-bottom: 2px solid var(--border-color);
+}
+
+td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-size: 0.95em;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background: rgba(245, 183, 0, 0.03);
+}
+
+td a {
+    display: inline-block;
+    padding: 4px 10px;
+    background: var(--bg-surface-hover);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-sm);
+    font-size: 0.88em;
+    margin: 2px 4px;
+}
+
+td a:hover {
+    border-color: var(--accent-yellow);
+    text-decoration: none;
+}
+
+td form {
+    display: inline-block;
+    margin: 2px 4px;
+}
+
+td form button {
+    padding: 4px 12px;
+    font-size: 0.85em;
+}
+
+/* ==========================================================================
+   Forms & Controls
+   ========================================================================== */
+form {
+    margin: 20px 0;
+}
+
+label {
+    display: inline-block;
+    margin: 8px 12px 8px 0;
+    vertical-align: middle;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.95em;
+}
+
+input, select, textarea {
+    background: #131519;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color-light);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    font-size: 0.95em;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--accent-yellow);
+    box-shadow: 0 0 0 3px var(--accent-yellow-subtle);
+}
+
+input[type=number] {
+    width: 90px;
+}
+
+fieldset {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 18px 22px;
+    margin: 20px 0;
+    text-align: left;
+}
+
+legend {
+    font-family: var(--font-heading);
+    font-size: 0.9em;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--accent-yellow);
+    padding: 0 8px;
+}
+
+.CHECKBOX_GRUPO {
+    display: inline-block;
+    margin: 6px 14px 6px 0;
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.CHECKBOX_GRUPO input[type=checkbox] {
+    accent-color: var(--accent-yellow);
+    margin-right: 6px;
+    cursor: pointer;
+}
+
+details {
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin: 18px 0;
+    text-align: left;
+}
+
+summary {
+    font-family: var(--font-heading);
+    font-size: 1.05em;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent-yellow);
+    cursor: pointer;
+    user-select: none;
+}
+
+summary:hover {
+    color: var(--accent-yellow-hover);
+}
+
+/* ==========================================================================
+   Category Pills & Filter Bar
+   ========================================================================== */
+.FILTROS_CARTA {
+    margin: 15px 0 20px 0;
+    text-align: left;
+}
+
+.BUSCADOR_PLATOS {
+    width: 100%;
+    max-width: 450px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+}
+
+.PILLS_CATEGORIAS {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.PILLS_CATEGORIAS button {
+    background: var(--bg-surface-elevated);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85em;
+    font-weight: 500;
+    box-shadow: none;
+}
+
+.PILLS_CATEGORIAS button:hover {
+    border-color: var(--accent-yellow);
+    color: var(--accent-yellow);
+    transform: none;
+}
+
+.PILLS_CATEGORIAS button.PILL_ACTIVA {
+    background: var(--accent-yellow);
+    color: var(--text-on-accent);
+    border-color: var(--accent-yellow);
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   Dishes Menu & Catalog
+   ========================================================================== */
+.SECCION {
+    display: block;
+    margin: 25px 0;
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    text-align: left;
+}
+
+.SECCION h2 {
+    border-left: none;
+    border-bottom: 2px solid var(--accent-yellow);
+    padding-bottom: 8px;
+    padding-left: 0;
+}
+
+.PLATO {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color);
+    padding: 14px 10px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.PLATO:last-child {
+    border-bottom: none;
+}
+
+.PLATO .NOMBRE {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 1.05em;
+    color: var(--text-primary);
+    min-width: 180px;
+}
+
+.PLATO .DESCRIPCION {
+    color: var(--text-muted);
+    font-size: 0.9em;
+    flex: 1 1 200px;
+}
+
+.PLATO .PRECIO {
+    font-family: var(--font-heading);
+    font-size: 1.15em;
+    font-weight: 700;
+    color: var(--accent-yellow);
+    min-width: 100px;
+    text-align: right;
+}
+
+.TOTAL_PEDIDO {
+    font-family: var(--font-heading);
+    font-size: 1.3em;
+    color: var(--accent-yellow);
+    font-weight: 800;
+}
+
+/* ==========================================================================
+   Precuenta / Invoice Ticket (.FACTURA_TICKET)
+   ========================================================================== */
+.FACTURA_CONTAINER {
+    max-width: 600px;
+    margin: 25px auto;
+}
+
+.FACTURA_TICKET {
+    background: #14161b;
+    border: 1px solid var(--border-color-light);
+    border-top: 4px solid var(--accent-yellow);
+    border-radius: var(--radius-md);
+    padding: 30px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
+    text-align: center;
+}
+
+.FACTURA_HEADER h2 {
+    text-align: center;
+    border: none;
+    padding: 0;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.15em;
+    color: var(--accent-yellow);
+}
+
+.FACTURA_HEADER p {
+    margin: 2px 0;
+    font-size: 0.85em;
+    color: var(--text-muted);
+}
+
+.FACTURA_INFO {
+    text-align: left;
+    margin: 18px 0;
+    padding: 12px;
+    background: #1a1d24;
+    border-radius: var(--radius-sm);
+    font-size: 0.9em;
+}
+
+.FACTURA_INFO p {
+    margin: 4px 0;
+}
+
+.FACTURA_TOTALES {
+    text-align: right;
+    margin: 18px 0;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border-color-light);
+}
+
+.FACTURA_TOTALES p {
+    margin: 6px 0;
+    font-size: 1em;
+}
+
+.FACTURA_TOTALES .FACTURA_GRAN_TOTAL {
+    font-size: 1.3em;
+    color: var(--accent-yellow);
+    font-family: var(--font-heading);
+    margin-top: 10px;
+}
+
+.FACTURA_FOOTER {
+    margin: 20px 0 10px 0;
+    font-size: 0.85em;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+}
+
+/* ==========================================================================
+   Alerts & Notifications
+   ========================================================================== */
+[role=alert] {
+    background: var(--danger-subtle);
+    color: #fca5a5;
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    margin: 15px 0;
+    text-align: left;
+    font-weight: 500;
+}
+
+[role=status] {
+    background: var(--success-subtle);
+    color: #6ee7b7;
+    border: 1px solid var(--success);
+    border-radius: var(--radius-md);
+    padding: 12px 18px;
+    margin: 15px 0;
+    text-align: left;
+    font-weight: 500;
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+@media print {
+    body {
+        background: white;
+        color: black;
+        padding: 0;
+    }
+    header, footer, .SESION, .MENU_OPCIONES, button, .BTN_IMPRIMIR {
+        display: none !important;
+    }
+    main {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+    .FACTURA_TICKET {
+        border: 1px solid #ccc;
+        box-shadow: none;
+        background: white;
+        color: black;
+    }
+    .FACTURA_HEADER h2, .FACTURA_TOTALES .FACTURA_GRAN_TOTAL {
+        color: black;
+    }
+}
