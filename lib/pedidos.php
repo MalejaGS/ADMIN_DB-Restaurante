@@ -74,6 +74,29 @@ function accion_entregar($conn)
     if (pg_affected_rows($r)!==1) throw new DomainException('Solo se pueden entregar ítems preparados.');
     return url('pedido',['id'=>$id]);
 }
+function accion_pedido_reasignar_mesa($conn)
+{
+    $id=entero($_POST['pedido_id']??null,'Pedido');
+    $p=pedido_acceso($conn,$id,true);
+    if (estado_pedido($conn,$id)==='Entregado') throw new DomainException('El pedido ya está entregado.');
+    $nuevaMesa=entero($_POST['nueva_mesa_id']??null,'Mesa');
+    if (!fila($conn,'SELECT id FROM mesas WHERE id=$1',[$nuevaMesa])) throw new DomainException('Mesa destino inexistente.');
+    $r=fila($conn,"SELECT r.cliente_id FROM reservaciones r JOIN horarios h ON h.reservacion_id=r.id WHERE h.mesa_id=$1 AND r.estado<>4 AND LOCALTIMESTAMP >= h.inicio AND LOCALTIMESTAMP < h.inicio+greatest(h.duracion,interval '2 hours') AND r.cliente_id<>$2 LIMIT 1",[$nuevaMesa,$p['cliente_id']]);
+    if ($r) throw new DomainException('La mesa destino está reservada para otro cliente en este horario.');
+    db($conn,'UPDATE pedidos SET mesa_id=$1 WHERE id=$2',[$nuevaMesa,$id]);
+    return url('pedido',['id'=>$id]);
+}
+function accion_orden_cancelar($conn)
+{
+    $id=entero($_POST['pedido_id']??null,'Pedido');
+    pedido_acceso($conn,$id,true);
+    $orden=entero($_POST['orden_id']??null,'Ítem');
+    $o=fila($conn,'SELECT * FROM ordenes WHERE id=$1 AND pedido_id=$2 FOR UPDATE',[$orden,$id]);
+    if (!$o) throw new DomainException('Ítem inexistente.');
+    if ((int)$o['estado']!==1) throw new DomainException('No se puede cancelar este plato porque ya fue tomado por cocina o está preparado.');
+    db($conn,'DELETE FROM ordenes WHERE id=$1',[$orden]);
+    return url('pedido',['id'=>$id]);
+}
 function formulario_items($conn)
 {
     $rows=filas($conn,'SELECT p.id,p.nombre,p.precio,t.nombre AS tipo FROM platos p JOIN tipos t ON t.id=p.tipo_id WHERE p.activo ORDER BY t.nombre,p.nombre');
@@ -132,11 +155,16 @@ function fn_pedido($conn)
         $historico=$r['precio_unitario']===null;
         $valor=($historico?$r['precio_actual']:$r['precio_unitario'])*$r['cantidad'];
         if ($historico) $estimado+=$valor; else $total+=$valor;
-        $accion=$r['estado']==4?formulario('entregar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Entregar'):'';
+        $accion='';
+        if ($r['estado']==4) $accion=formulario('entregar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Entregar');
+        elseif ($r['estado']==1) $accion=formulario('orden_cancelar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Cancelar');
         $data[]=[h($r['nombre']),h($r['cantidad']),h($estados[$r['estado']]),h(dinero($valor)).($historico?' (estimado)':''),$accion];
     }
-    $s.=tabla(['Plato','Cantidad','Estado','Subtotal','Entrega'],$data).'<p>Total con precio registrado: '.h(dinero($total)).'. Estimación histórica adicional: '.h(dinero($estimado)).'.</p>';
-    if (estado_pedido($conn,$id)!=='Entregado') $s.='<h2>Agregar ítems</h2>'.formulario('pedido_agregar',oculto('pedido_id',$id).formulario_items($conn),'Agregar al pedido');
+    $s.=tabla(['Plato','Cantidad','Estado','Subtotal','Acción'],$data).'<p>Total con precio registrado: '.h(dinero($total)).'. Estimación histórica adicional: '.h(dinero($estimado)).'.</p>';
+    if (estado_pedido($conn,$id)!=='Entregado') {
+        $s.='<details><summary>Cambiar mesa del pedido</summary>'.formulario('pedido_reasignar_mesa',oculto('pedido_id',$id).campo('nueva_mesa_id','Nueva mesa destino',$p['mesa_id']??'','number','min="1" required'),'Reasignar mesa').'</details>';
+        $s.='<h2>Agregar ítems</h2>'.formulario('pedido_agregar',oculto('pedido_id',$id).formulario_items($conn),'Agregar al pedido');
+    }
     return $s;
 }
 function accion_cocina($conn)
