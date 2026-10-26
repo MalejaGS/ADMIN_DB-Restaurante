@@ -34,10 +34,13 @@ Los nuevos pedidos conservan precio y fecha, y las nuevas entregas su instante r
 
 ## Cobertura y comprobación
 
-Los cuatro módulos prioritarios están implementados. Se incluye el acceso de empleados y el flujo mínimo de cocina necesario para preparar y entregar los pedidos. Los permisos se acumulan cuando un empleado tiene varios roles.
+Se encuentran implementados los módulos prioritarios y las tres funcionalidades críticas restantes de la especificación:
+1. **Gestión de Mesas:** Creación, edición de capacidad en asientos, cálculo dinámico del cupo total del restaurante y eliminación segura con verificación de integridad histórica y reservaciones vigentes (compatible con tablas distribuidas Citus).
+2. **Gestión de Empleados:** Registro de personal con contraseñas seguras, administración de roles múltiples (Administrador, Maitre, Mesero, Cocinero), control de estado activo y asignación directa de platos autorizados a cocineros (especialidades).
+3. **Historial de Clientes:** Consulta integral con desglose y métricas de reservaciones, pedidos realizados, importes acumulados y estado de cada transacción.
+4. **Notificaciones y alertas:** Alertas de reservaciones próximas a comenzar (en 2 horas o menos) para el Maitre y visualización de pedidos preparados listos para entregar para el Mesero.
 
 Las pruebas automatizadas cubren registro y ampliación de pedidos, transiciones, importes, CRUD, cruces, cupo, reenvíos, concurrencia, rutas, permisos, autenticación antigua y moderna, CSRF y escape HTML. También se comprobó el flujo completo sobre la base real dentro de una transacción con ROLLBACK, sin dejar registros de prueba.
 
-La cabecera, pie, colores, clases de carta y estructura de la plantilla se mantienen. Se añadieron controles de formulario y tablas; no se introdujo un framework.
+La cabecera, pie, colores, clases de carta y estructura de la plantilla académica de la Pontificia Universidad Javeriana se mantienen íntegramente. Se añadieron controles de formulario y tablas; no se introdujo un framework ajeno.
 
-Quedan para la segunda etapa acordada: administración completa de mesas y empleados, historial independiente de clientes y notificaciones periódicas. El menú principal ya muestra ítems preparados del mesero conectado cuando se consulta.

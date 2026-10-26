@@ -6,7 +6,7 @@ if [ "$(id -u)" -ne 0 ]; then
     echo 'Ejecute: sudo bash /home/estudiante/restaurante/publicar-apache.sh' >&2
     exit 1
 fi
-archivos=(etc/parametros.php lib/libreria.php lib/auth.php lib/pedidos.php lib/reservas.php lib/menu.php lib/reportes.php lib/restaurante.php lib/programa.js css/estilo.css esqueleto.html index.php)
+archivos=(etc/parametros.php lib/libreria.php lib/auth.php lib/pedidos.php lib/reservas.php lib/menu.php lib/reportes.php lib/restaurante.php lib/mesas.php lib/empleados.php lib/programa.js css/estilo.css esqueleto.html index.php)
 for archivo in "${archivos[@]}"; do
     test -f "$origen/$archivo"
     if [[ "$archivo" == *.php ]]; then php -l "$origen/$archivo" >/dev/null; fi

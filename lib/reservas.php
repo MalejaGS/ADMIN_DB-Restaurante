@@ -129,8 +129,58 @@ function fn_clientes($conn)
     $q=isset($_GET['q'])&&is_string($_GET['q'])?trim($_GET['q']):'';
     if (mb_strlen($q)>150) throw new DomainException('Búsqueda demasiado larga.');
     $id=isset($_GET['id'])?entero($_GET['id'],'Cliente'):null;
-    $rows=filas($conn,"SELECT u.id,u.nombre FROM usuarios u WHERE u.activo AND EXISTS(SELECT 1 FROM actuaciones a JOIN roles r ON r.id=a.rol_id WHERE a.usuario_id=u.id AND r.nombre='Cliente') AND ($1::text='' OR u.nombre ILIKE '%'||$1||'%') AND ($2::integer IS NULL OR u.id=$2) ORDER BY u.nombre,u.id LIMIT 100",[$q,$id]);
-    $s='<h1>Clientes</h1><form method="get">'.oculto('opcion','clientes').campo('q','Buscar por nombre',$q).'<button>Buscar</button></form>'.tabla(['ID','Nombre'],array_map(function($r){return [h($r['id']),h($r['nombre'])];},$rows)).'<p>Hasta 100 resultados; refine la búsqueda si es necesario.</p>';
+
+    if ($id !== null) {
+        $cliente=fila($conn,"SELECT u.id,u.nombre,u.activo FROM usuarios u WHERE u.id=$1 AND EXISTS(SELECT 1 FROM actuaciones a JOIN roles r ON r.id=a.rol_id WHERE a.usuario_id=u.id AND r.nombre='Cliente')",[$id]);
+        if (!$cliente) throw new DomainException('Cliente no encontrado.');
+
+        $reservas=filas($conn,"SELECT r.id,r.cantidad,r.estado,h.mesa_id,h.inicio FROM reservaciones r LEFT JOIN horarios h ON h.reservacion_id=r.id WHERE r.cliente_id=$1 ORDER BY h.inicio DESC NULLS LAST, r.id DESC",[$id]);
+        $pedidos=filas($conn,"SELECT p.id,p.mesa_id,p.creado,
+            (SELECT string_agg(o.cantidad || 'x ' || pl.nombre, ', ' ORDER BY pl.nombre) FROM ordenes o JOIN platos pl ON pl.id=o.plato_id WHERE o.pedido_id=p.id) AS platos_detalle,
+            (SELECT COALESCE(sum(o.cantidad * COALESCE(o.precio_unitario, pl.precio)), 0) FROM ordenes o JOIN platos pl ON pl.id=o.plato_id WHERE o.pedido_id=p.id) AS total_calculado
+            FROM pedidos p WHERE p.cliente_id=$1 ORDER BY p.id DESC",[$id]);
+
+        $gastoTotal=0;
+        foreach($pedidos as $ped) $gastoTotal += (float)$ped['total_calculado'];
+        $estadosReserva=[1=>'Pendiente',2=>'Confirmada',3=>'Completada',4=>'Cancelada'];
+
+        $s='<h1>Historial del Cliente #'.(int)$cliente['id'].' · '.h($cliente['nombre']).'</h1>';
+        $s.='<p>'.enlace('← Volver a la búsqueda de clientes','clientes').'</p>';
+        $s.='<div class="RESUMEN_CLIENTE">';
+        $s.='<div class="RESUMEN_CARD"><span>Reservaciones</span><strong>'.count($reservas).'</strong></div>';
+        $s.='<div class="RESUMEN_CARD"><span>Pedidos</span><strong>'.count($pedidos).'</strong></div>';
+        $s.='<div class="RESUMEN_CARD"><span>Gasto total</span><strong>'.h(dinero($gastoTotal)).'</strong></div>';
+        $s.='</div>';
+
+        $s.='<h2>Historial de Reservaciones</h2>';
+        $resData=[];
+        foreach($reservas as $r) {
+            $acciones=enlace('Ver en reservas','reservas',['id'=>$r['id']]);
+            $resData[]=[h($r['id']),h($r['inicio']??'Sin horario'),h($r['mesa_id']??'Sin mesa'),h($r['cantidad']),h($estadosReserva[$r['estado']]??'Desconocido'),$acciones];
+        }
+        $s.=tabla(['Reserva #','Fecha y Hora','Mesa','Personas','Estado','Acción'],$resData);
+
+        $s.='<h2>Historial de Pedidos</h2>';
+        $pedData=[];
+        foreach($pedidos as $p) {
+            $estadoP=estado_pedido($conn,$p['id']);
+            $pedData[]=[enlace('#'.$p['id'],'pedido',['id'=>$p['id']]),h($p['creado']??'Histórico sin fecha'),h($p['mesa_id']??'Sin mesa'),h($p['platos_detalle']??'Sin platos'),h(dinero($p['total_calculado'])),h($estadoP),enlace('Ver pedido','pedido',['id'=>$p['id']])];
+        }
+        $s.=tabla(['Pedido #','Fecha','Mesa','Ítems solicitados','Total estimado','Estado','Acción'],$pedData);
+
+        return $s;
+    }
+
+    $rows=filas($conn,"SELECT u.id,u.nombre FROM usuarios u WHERE u.activo AND EXISTS(SELECT 1 FROM actuaciones a JOIN roles r ON r.id=a.rol_id WHERE a.usuario_id=u.id AND r.nombre='Cliente') AND ($1::text='' OR u.nombre ILIKE '%'||$1||'%') ORDER BY u.nombre,u.id LIMIT 100",[$q]);
+    $tablaData=[];
+    foreach($rows as $r) {
+        $tablaData[]=[
+            h($r['id']),
+            h($r['nombre']),
+            enlace('Ver historial completo','clientes',['id'=>$r['id']])
+        ];
+    }
+    $s='<h1>Clientes e Historial</h1><form method="get">'.oculto('opcion','clientes').campo('q','Buscar por nombre',$q).'<button>Buscar</button></form>'.tabla(['ID','Nombre','Historial'],$tablaData).'<p>Hasta 100 resultados; refine la búsqueda si es necesario.</p>';
     if (puede('Administrador','Maitre')) $s.='<h2>Registrar cliente</h2>'.formulario('cliente_guardar',campo('nombre','Nombre','','text','maxlength="150" required'));
     return $s;
 }

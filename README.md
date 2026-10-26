@@ -38,10 +38,10 @@ WHERE r.nombre IN ('Administrador','Maitre','Mesero','Cocinero')
 GROUP BY u.id,u.nombre ORDER BY u.id;
 ```
 
-- **Mesero:** Realizar Pedido → mesa → cliente o reserva vigente → cantidades → Registrar pedido. En el detalle puede agregar ítems mientras no esté totalmente entregado. El total visual refleja los ítems nuevos.
-- **Maitre:** Reservaciones → cliente, mesa, inicio y personas. Consultar disponibilidad permite elegir fecha, hora y personas antes de seleccionar mesa. Se guardan dos horas y se rechazan cruces. La lista por fecha permite modificar y cancelar. Clientes permite buscar IDs y registrar clientes nuevos.
+- **Mesero:** Realizar Pedido → mesa → cliente o reserva vigente → cantidades → Registrar pedido. En el detalle puede agregar ítems mientras no esté totalmente entregado. Clientes e Historial permite consultar el historial de consumos y reservas de los clientes.
+- **Maitre:** Reservaciones → cliente, mesa, inicio y personas. Consultar disponibilidad permite elegir fecha, hora y personas antes de seleccionar mesa. Se guardan dos horas y se rechazan cruces. Alertas en el panel principal indican reservaciones próximas a comenzar en las siguientes 2 horas. Clientes e Historial permite registrar clientes y ver su historial completo.
 - **Cocinero:** Preparación → Tomar → Marcar preparado. Solo aparecen platos autorizados, ordenados por tiempo de preparación descendente y antigüedad. El mesero entrega cada ítem preparado desde el detalle del pedido.
-- **Administrador:** Actualizar Menú permite agregar o editar categorías, platos y especialidades. Los platos activos necesitan cocinero autorizado. Los platos con historial se desactivan al pedir su eliminación. Reportes permite elegir fechas y agrupación diaria, semanal o mensual.
+- **Administrador:** Actualizar Menú permite agregar o editar categorías, platos y especialidades. **Gestión de Mesas** permite agregar, modificar asientos, consultar el cupo total del restaurante y eliminar mesas sin historial activo. **Gestión de Empleados** permite crear personal, asignar roles (Administrador, Maitre, Mesero, Cocinero), activar/desactivar y autorizar platos a cocineros directamente. Reportes permite elegir fechas y agrupación diaria, semanal o mensual.
 
 Estados internos de ítems: `1` en preparación sin asignar, `2` en preparación asignada, `4` preparado, `3` entregado. Se conservó el significado histórico del valor `3`. El estado general del pedido se calcula sobre todos sus ítems.
 

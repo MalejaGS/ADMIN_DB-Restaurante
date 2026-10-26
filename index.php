@@ -27,8 +27,8 @@ try {
         if ($accion==='login') login($conn);
         if (!isset($_SESSION['usuario_id'])) { http_response_code(401);throw new DomainException('Inicie sesión para continuar.'); }
         if ($accion==='logout') { $_SESSION=[];session_regenerate_id(true);redirigir(url()); }
-        $acciones=['pedido_guardar'=>'accion_pedido_guardar','pedido_agregar'=>'accion_pedido_agregar','entregar'=>'accion_entregar','cocina'=>'accion_cocina','reserva_guardar'=>'accion_reserva_guardar','reserva_cancelar'=>'accion_reserva_cancelar','cliente_guardar'=>'accion_cliente_guardar','plato_guardar'=>'accion_plato_guardar','plato_eliminar'=>'accion_plato_eliminar','categoria_guardar'=>'accion_categoria_guardar','categoria_eliminar'=>'accion_categoria_eliminar'];
-        $permisos=['pedido_guardar'=>['Mesero'],'pedido_agregar'=>['Administrador','Mesero'],'entregar'=>['Administrador','Mesero'],'cocina'=>['Cocinero'],'reserva_guardar'=>['Administrador','Maitre'],'reserva_cancelar'=>['Administrador','Maitre'],'cliente_guardar'=>['Administrador','Maitre'],'plato_guardar'=>['Administrador'],'plato_eliminar'=>['Administrador'],'categoria_guardar'=>['Administrador'],'categoria_eliminar'=>['Administrador']];
+        $acciones=['pedido_guardar'=>'accion_pedido_guardar','pedido_agregar'=>'accion_pedido_agregar','entregar'=>'accion_entregar','cocina'=>'accion_cocina','reserva_guardar'=>'accion_reserva_guardar','reserva_cancelar'=>'accion_reserva_cancelar','cliente_guardar'=>'accion_cliente_guardar','plato_guardar'=>'accion_plato_guardar','plato_eliminar'=>'accion_plato_eliminar','categoria_guardar'=>'accion_categoria_guardar','categoria_eliminar'=>'accion_categoria_eliminar','mesa_guardar'=>'accion_mesa_guardar','mesa_eliminar'=>'accion_mesa_eliminar','empleado_guardar'=>'accion_empleado_guardar'];
+        $permisos=['pedido_guardar'=>['Mesero'],'pedido_agregar'=>['Administrador','Mesero'],'entregar'=>['Administrador','Mesero'],'cocina'=>['Cocinero'],'reserva_guardar'=>['Administrador','Maitre'],'reserva_cancelar'=>['Administrador','Maitre'],'cliente_guardar'=>['Administrador','Maitre'],'plato_guardar'=>['Administrador'],'plato_eliminar'=>['Administrador'],'categoria_guardar'=>['Administrador'],'categoria_eliminar'=>['Administrador'],'mesa_guardar'=>['Administrador'],'mesa_eliminar'=>['Administrador'],'empleado_guardar'=>['Administrador']];
         if (!isset($acciones[$accion])) { http_response_code(404);throw new DomainException('Acción desconocida.'); }
         exigir(...$permisos[$accion]);
         $fn=$acciones[$accion];
@@ -38,7 +38,7 @@ try {
     }
     if (!isset($_SESSION['usuario_id'])) $contenido=fn_login($conn);
     else {
-        $rutas=[''=>'fn_menu_opciones','desplegar_menu'=>'fn_desplegar_menu','realizar_pedidos'=>'fn_realizar_pedidos','pedido'=>'fn_pedido','reservas'=>'fn_reservas','clientes'=>'fn_clientes','gestion_menu'=>'fn_gestion_menu','reportes'=>'fn_reportes','cocina'=>'fn_cocina'];
+        $rutas=[''=>'fn_menu_opciones','desplegar_menu'=>'fn_desplegar_menu','realizar_pedidos'=>'fn_realizar_pedidos','pedido'=>'fn_pedido','reservas'=>'fn_reservas','clientes'=>'fn_clientes','gestion_menu'=>'fn_gestion_menu','reportes'=>'fn_reportes','cocina'=>'fn_cocina','gestion_mesas'=>'fn_gestion_mesas','gestion_empleados'=>'fn_gestion_empleados'];
         $opcion=$_GET['opcion']??'';
         if (!is_string($opcion)||!isset($rutas[$opcion])) { http_response_code(404);throw new DomainException('Página no encontrada.'); }
         $contenido=$rutas[$opcion]($conn);

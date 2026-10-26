@@ -59,8 +59,6 @@ a.ACTIVA {
     border-bottom:      0px;
     font-size:          1.3em;
 }
-nav {
-}
 header {
     background:         cyan;
     border-radius:      15px 15px 0px 0px;
@@ -129,7 +127,13 @@ input, select, textarea, button { font: inherit; }
 textarea { vertical-align: middle; }
 input[type=number] { width: 100px; }
 button { cursor: pointer; }
-fieldset { margin: 12px 0; }
+fieldset { margin: 12px auto; max-width: 800px; text-align: left; border: 1px solid grey; border-radius: 6px; padding: 12px; }
+legend { font-weight: bold; padding: 0 6px; }
+.CHECKBOX_GRUPO { display: inline-block; margin: 4px 10px; font-size: 0.95em; vertical-align: middle; }
+.RESUMEN_CLIENTE { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin: 15px 0; }
+.RESUMEN_CARD { border: 2px solid navy; border-radius: 8px; padding: 12px 18px; min-width: 140px; background: #f0f8ff; }
+.RESUMEN_CARD span { display: block; font-size: 0.85em; color: #333; margin-bottom: 4px; }
+.RESUMEN_CARD strong { font-size: 1.3em; color: navy; }
 .TABLA { overflow-x: auto; }
 table { border-collapse: collapse; margin: 15px auto; width: 100%; }
 th, td { border-bottom: 1px dotted grey; padding: 8px; }
@@ -137,3 +141,4 @@ td a { font-size: 1em; margin: 4px; padding: 6px; }
 .SESION form { display: inline-block; margin-left: 12px; }
 [role=alert] { color: #8b0000; }
 [role=status] { color: #006400; }
+
