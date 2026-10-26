@@ -101,8 +101,14 @@ function formulario_items($conn)
 {
     $rows=filas($conn,'SELECT p.id,p.nombre,p.precio,t.nombre AS tipo FROM platos p JOIN tipos t ON t.id=p.tipo_id WHERE p.activo ORDER BY t.nombre,p.nombre');
     if (!$rows) return '<p>No hay platos disponibles.</p>';
+    $tipos=array_values(array_unique(array_column($rows,'tipo')));
     $s='<div class="ITEMS_PEDIDO">';
-    foreach($rows as $p) $s.='<div class="PLATO"><span class="NOMBRE">'.h($p['nombre']).'</span> <span class="DESCRIPCION">'.h($p['tipo']).'</span> <span class="PRECIO">'.h(dinero($p['precio'])).'</span> <label>Cantidad <input type="number" name="cantidad['.(int)$p['id'].']" min="0" max="1000" value="0" data-precio="'.h($p['precio']).'"></label></div>';
+    $s.='<div class="FILTROS_CARTA"><input type="text" class="BUSCADOR_PLATOS" placeholder="🔍 Buscar plato por nombre..."><div class="PILLS_CATEGORIAS"><button type="button" class="PILL_ACTIVA" data-categoria="">Todas</button>';
+    foreach($tipos as $t) $s.='<button type="button" data-categoria="'.h($t).'">'.h($t).'</button>';
+    $s.='</div></div>';
+    foreach($rows as $p) {
+        $s.='<div class="PLATO" data-tipo="'.h($p['tipo']).'" data-nombre="'.h(mb_strtolower($p['nombre'])).'"><span class="NOMBRE">'.h($p['nombre']).'</span> <span class="DESCRIPCION">'.h($p['tipo']).'</span> <span class="PRECIO">'.h(dinero($p['precio'])).'</span> <label>Cantidad <input type="number" name="cantidad['.(int)$p['id'].']" min="0" max="1000" value="0" data-precio="'.h($p['precio']).'"></label></div>';
+    }
     return $s.'<p>Total de nuevos ítems: <output class="TOTAL_PEDIDO">$0,00</output></p><p>El servidor confirma los precios vigentes al guardar.</p></div>';
 }
 function selector_cliente($conn,$seleccionado=null)
