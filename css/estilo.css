@@ -835,26 +835,77 @@ td form button {
 }
 
 /* ==========================================================================
+   Barra de Sesión de Usuario
+   ========================================================================== */
+.SESION {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 24px;
+    padding: 12px 18px;
+    background-color: var(--bg-surface-soft);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+}
+
+.SESION p {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.SESION form {
+    margin: 0;
+    display: inline-block;
+}
+
+.SESION form button {
+    margin: 0;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    background-color: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger-border);
+    box-shadow: none;
+}
+
+.SESION form button:hover {
+    background-color: var(--danger-bg);
+    transform: none;
+    box-shadow: none;
+}
+
+.SESION button[onclick*="index.php"] {
+    margin-bottom: 0;
+}
+
+/* ==========================================================================
    Alertas y Notificaciones
    ========================================================================== */
 .ALERTA_EXITO,
-.ALERTA_ERROR {
+.ALERTA_ERROR,
+p[role="status"],
+p[role="alert"] {
     border-radius: var(--radius-sm);
-    padding: 14px 18px;
+    padding: 13px 18px;
     margin: 18px 0;
     font-size: 0.92rem;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+    font-weight: 500;
+    line-height: 1.5;
 }
 
-.ALERTA_EXITO {
+.ALERTA_EXITO,
+p[role="status"] {
     background-color: var(--success-bg);
     color: var(--success);
     border: 1px solid var(--success-border);
 }
 
-.ALERTA_ERROR {
+.ALERTA_ERROR,
+p[role="alert"] {
     background-color: var(--danger-bg);
     color: var(--danger);
     border: 1px solid var(--danger-border);
