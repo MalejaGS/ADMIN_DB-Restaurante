@@ -70,10 +70,17 @@ function fn_reservas($conn)
 {
     exigir('Maitre','Administrador');
     $dia=fecha($_GET['fecha']??date('Y-m-d'));
-    $s='<h1>Reservaciones</h1><form method="get">'.oculto('opcion','reservas').campo('fecha','Fecha',$dia,'date','required').'<button>Consultar</button></form>';
+    $hoy=date('Y-m-d');
+    $manana=date('Y-m-d',strtotime('+1 day'));
+    $pillsFecha='<div class="PILLS_FECHAS">
+        <a href="'.h(url('reservas',['fecha'=>$hoy])).'" class="PILL_FECHA'.($dia===$hoy?' PILL_ACTIVA':'').'">📅 Hoy ('.date('d/m').')</a>
+        <a href="'.h(url('reservas',['fecha'=>$manana])).'" class="PILL_FECHA'.($dia===$manana?' PILL_ACTIVA':'').'">📅 Mañana</a>
+    </div>';
+
+    $s='<h1>Gestión de Reservaciones</h1>'.$pillsFecha.'<form method="get" class="FORM_FILTRO_FECHA">'.oculto('opcion','reservas').campo('fecha','Consultar otra fecha',$dia,'date','required').'<button>Consultar fecha</button></form>';
     $consulta=isset($_GET['inicio_consulta'])?inicio_reserva($_GET['inicio_consulta']):null;
     $personas=isset($_GET['personas_consulta'])?entero($_GET['personas_consulta'],'Personas'):1;
-    $s.='<details'.($consulta?' open':'').'><summary>Consultar disponibilidad y franjas horarias</summary><form method="get">'.oculto('opcion','reservas').oculto('fecha',$dia).campo('inicio_consulta','Inicio',isset($_GET['inicio_consulta'])?$_GET['inicio_consulta']:(new DateTimeImmutable('+1 hour'))->format('Y-m-d\TH:i'),'datetime-local','required').campo('personas_consulta','Personas',$personas,'number','min="1" required').'<button>Consultar mesas</button></form>';
+    $s.='<details'.($consulta?' open':'').' class="CARD_FORM"><summary>🔍 Consultar disponibilidad y franjas horarias</summary><form method="get">'.oculto('opcion','reservas').oculto('fecha',$dia).campo('inicio_consulta','Inicio',isset($_GET['inicio_consulta'])?$_GET['inicio_consulta']:(new DateTimeImmutable('+1 hour'))->format('Y-m-d\TH:i'),'datetime-local','required').campo('personas_consulta','Personas',$personas,'number','min="1" required').'<button>Consultar mesas</button></form>';
 
     $cupoMesas=fila($conn,'SELECT COALESCE(sum(sillas),0) AS total_sillas FROM mesas');
     $aforoTotal=(int)$cupoMesas['total_sillas'];
@@ -111,18 +118,30 @@ function fn_reservas($conn)
         if (!in_array((int)$r['estado'],[1,2],true)) throw new DomainException('La reserva no es editable.');
     }
     $mesas=filas($conn,"SELECT id,'Mesa '||id||' ('||sillas||' sillas)' AS nombre FROM mesas ORDER BY id");
-    $s.='<h2>'.($r?'Modificar reserva #'.(int)$r['id']:'Crear reserva').'</h2>'.formulario('reserva_guardar',oculto('id',$r['id']??'').selector_cliente($conn,$r['cliente_id']??null).'<label>Mesa <select name="mesa_id" required>'.opciones($mesas,'id','nombre',$r['mesa_id']??(isset($_GET['mesa_id'])?entero($_GET['mesa_id'],'Mesa'):null)).'</select></label>'.campo('inicio','Inicio',isset($r['inicio'])?date('Y-m-d\TH:i',strtotime($r['inicio'])):($consulta?date('Y-m-d\TH:i',strtotime($consulta)):$dia.'T12:00'),'datetime-local','required').campo('personas','Personas',$r['cantidad']??$personas,'number','min="1" required').'<p>Duración: dos horas. La disponibilidad se valida al guardar.</p>');
+    
+    $formularioReserva='<h2>'.($r?'Modificar reserva #'.(int)$r['id']:'Registrar nueva reserva').'</h2>'.formulario('reserva_guardar',oculto('id',$r['id']??'').selector_cliente($conn,$r['cliente_id']??null).'<label>Mesa asignada <select name="mesa_id" required>'.opciones($mesas,'id','nombre',$r['mesa_id']??(isset($_GET['mesa_id'])?entero($_GET['mesa_id'],'Mesa'):null)).'</select></label>'.campo('inicio','Fecha y Hora de Inicio',isset($r['inicio'])?date('Y-m-d\TH:i',strtotime($r['inicio'])):($consulta?date('Y-m-d\TH:i',strtotime($consulta)):$dia.'T12:00'),'datetime-local','required').campo('personas','Cantidad de Personas',$r['cantidad']??$personas,'number','min="1" required').'<p>Duración estándar: 2 horas. La disponibilidad se valida transaccionalmente al guardar.</p>');
+    
+    if ($r) {
+        $s.=$formularioReserva;
+    } else {
+        $s.='<details class="CARD_FORM"><summary>+ Registrar Nueva Reserva</summary>'.$formularioReserva.'</details>';
+    }
+
     $rows=filas($conn,'SELECT r.*,h.mesa_id,h.inicio,u.nombre FROM reservaciones r JOIN horarios h ON h.reservacion_id=r.id JOIN usuarios u ON u.id=r.cliente_id WHERE h.inicio >= $1::date AND h.inicio < $1::date+interval \'1 day\' ORDER BY h.inicio,r.id',[$dia]);
-    $estados=[1=>'Pendiente',2=>'Confirmada',3=>'Completada',4=>'Cancelada'];$data=[];
+    $estados=[1=>'Pendiente',2=>'Confirmada',3=>'Completada',4=>'Cancelada'];
+    $data=[];
     foreach($rows as $row) {
         $acciones='';
-        if (in_array((int)$row['estado'],[1,2],true)) $acciones=enlace('Modificar','reservas',['id'=>$row['id'],'fecha'=>$dia]).formulario('reserva_cancelar',oculto('id',$row['id']),'Cancelar reserva');
-        $data[]=[h($row['id']),h($row['nombre']),h($row['mesa_id']),h($row['inicio']),h($row['cantidad']),h($estados[$row['estado']]),$acciones];
+        if (in_array((int)$row['estado'],[1,2],true)) {
+            $acciones=enlace('Modificar','reservas',['id'=>$row['id'],'fecha'=>$dia]).' '.formulario('reserva_cancelar',oculto('id',$row['id']),'✕ Cancelar');
+        }
+        $bClass=((int)$row['estado']===2?'BADGE_SUCCESS':((int)$row['estado']===1?'BADGE_WARNING':((int)$row['estado']===4?'BADGE_DANGER':'BADGE_INFO')));
+        $data[]=[h($row['id']),h($row['nombre']),'Mesa '.(int)$row['mesa_id'],date('H:i',strtotime($row['inicio'])),h($row['cantidad']).' comensales','<span class="BADGE '.$bClass.'">'.h($estados[$row['estado']]).'</span>',$acciones];
     }
-    $s.=tabla(['Reserva','Cliente','Mesa','Inicio','Personas','Estado','Acciones'],$data);
+    $s.='<h2>Reservas programadas para '.$dia.'</h2>'.tabla(['Reserva','Cliente','Mesa','Hora','Comensales','Estado','Acciones'],$data);
     $cupo=fila($conn,'SELECT COALESCE(sum(sillas),0) AS total FROM mesas');
     $conflictos=filas($conn,'SELECT c.* FROM restaurante_conflictos_reservas c JOIN horarios h ON h.id=c.horario_1 WHERE h.inicio >= CURRENT_DATE ORDER BY h.inicio LIMIT 50');
-    $s.='<p>Cupo total: '.h($cupo['total']).' personas.</p>';
+    $s.='<p>Cupo total del restaurante: <strong>'.h($cupo['total']).' asientos</strong>.</p>';
     if ($conflictos) {
         $s.='<h2>Conflictos existentes al estimar dos horas</h2><p>Revise estas reservas antes de reasignar mesas. No se han modificado automáticamente.</p>';
         $s.=tabla(['Mesa','Reserva 1','Reserva 2'],array_map(function($v){return [h($v['mesa_id']),h($v['reserva_1']),h($v['reserva_2'])];},$conflictos));

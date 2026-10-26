@@ -835,7 +835,7 @@ td form button {
 }
 
 /* ==========================================================================
-   Barra de Sesión de Usuario
+   Barra de Sesión de Usuario & Navegación Persistente
    ========================================================================== */
 .SESION {
     display: flex;
@@ -843,18 +843,68 @@ td form button {
     align-items: center;
     flex-wrap: wrap;
     gap: 14px;
-    margin-bottom: 24px;
-    padding: 12px 18px;
+    margin-bottom: 26px;
+    padding: 10px 16px;
     background-color: var(--bg-surface-soft);
     border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius-md);
 }
 
-.SESION p {
-    margin: 0;
-    font-size: 0.92rem;
+.SESION_NAV {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.APP_NAV_LINK {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
     font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.APP_NAV_LINK:hover {
+    background-color: #ffffff;
     color: var(--text-primary);
+    text-decoration: none;
+}
+
+.APP_NAV_LINK.NAV_ACTIVA {
+    background-color: #ffffff;
+    color: var(--accent-gold-dark);
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-bottom: 2px solid var(--accent-gold);
+}
+
+.SESION_USER {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.USER_INFO {
+    font-size: 0.86rem;
+    color: var(--text-secondary);
+}
+
+.ROL_BADGE {
+    display: inline-block;
+    background: #ffffff;
+    border: 1px solid var(--border-subtle);
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--accent-gold-dark);
+    margin-left: 4px;
 }
 
 .SESION form {
@@ -864,8 +914,8 @@ td form button {
 
 .SESION form button {
     margin: 0;
-    padding: 7px 14px;
-    font-size: 0.85rem;
+    padding: 6px 12px;
+    font-size: 0.84rem;
     background-color: transparent;
     color: var(--danger);
     border: 1px solid var(--danger-border);
@@ -878,8 +928,519 @@ td form button {
     box-shadow: none;
 }
 
-.SESION button[onclick*="index.php"] {
+/* ==========================================================================
+   Pantalla de Inicio de Sesión & Perfiles Rápidos
+   ========================================================================== */
+.LOGIN_CONTAINER {
+    max-width: 480px;
+    margin: 10px auto;
+}
+
+.LOGIN_HEADER {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.LOGIN_HEADER h1 {
+    font-size: 1.55rem;
+    justify-content: center;
+    border: none;
+    padding-bottom: 0;
+    margin-bottom: 8px;
+}
+
+.LOGIN_HEADER h1::after {
+    display: none;
+}
+
+.LOGIN_HEADER p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.LOGIN_DEMO_CARD {
+    margin-top: 28px;
+    padding: 18px 20px;
+    background: var(--bg-surface-soft);
+    border: 1.5px dashed var(--border-medium);
+    border-radius: var(--radius-md);
+}
+
+.DEMO_TITULO {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.DEMO_BOTONES {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.BTN_DEMO {
+    background: #ffffff;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.BTN_DEMO:hover {
+    border-color: var(--accent-gold);
+    background: var(--accent-gold-light);
+    color: var(--accent-gold-dark);
+    transform: translateY(-1px);
+}
+
+.DEMO_HINT {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 10px;
     margin-bottom: 0;
+}
+
+.BTN_RESALTADO {
+    animation: pulsoResaltado 0.8s ease;
+}
+
+@keyframes pulsoResaltado {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+}
+
+/* ==========================================================================
+   Plano de Sala Visual (Floor Plan)
+   ========================================================================== */
+.PLANO_SALA {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 16px;
+    margin: 20px 0 32px 0;
+}
+
+.MESA_CARD {
+    background: #ffffff;
+    border: 1.5px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.15s ease;
+}
+
+.MESA_CARD:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card);
+}
+
+.MESA_CARD.MESA_LIBRE {
+    border-top: 4px solid var(--success);
+}
+
+.MESA_CARD.MESA_OCUPADA {
+    border-top: 4px solid var(--info);
+    background: var(--bg-surface-warm);
+}
+
+.MESA_CARD.MESA_RESERVADA {
+    border-top: 4px solid var(--accent-gold);
+}
+
+.MESA_CARD_TOP {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.MESA_NUM {
+    font-family: var(--font-heading);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.MESA_SILLAS {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+.MESA_ESTADO_BADGE {
+    font-size: 0.84rem;
+    font-weight: 600;
+}
+
+.MESA_DETALLE {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    min-height: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.MESA_CLIENTE {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.MESA_ITEMS {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.MESA_BOTON a {
+    display: block;
+    text-align: center;
+    padding: 8px 12px;
+    background: var(--bg-surface-soft);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.MESA_BOTON a:hover {
+    background: var(--accent-gold);
+    color: #ffffff;
+    border-color: var(--accent-gold);
+    text-decoration: none;
+}
+
+/* ==========================================================================
+   Grilla de Platos & Controles Táctiles (Steppers)
+   ========================================================================== */
+.GRILLA_PLATOS {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+}
+
+.PLATO_CARD {
+    background: #ffffff;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.15s ease;
+}
+
+.PLATO_CARD.CARD_SELECCIONADA {
+    border-color: var(--accent-gold);
+    background-color: var(--accent-gold-light);
+    box-shadow: 0 2px 8px rgba(200, 146, 20, 0.18);
+}
+
+.PLATO_INFO {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex: 1;
+}
+
+.PLATO_NOMBRE {
+    font-family: var(--font-heading);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.PLATO_TIPO {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+
+.PLATO_PRECIO_COL {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.PLATO_PRECIO {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--accent-gold-dark);
+}
+
+.STEPPER_CANTIDAD {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid var(--border-medium);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.BTN_STEP {
+    background: var(--bg-surface-soft);
+    border: none;
+    width: 32px;
+    height: 32px;
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transition: background-color 0.1s ease;
+}
+
+.BTN_STEP:hover {
+    background: var(--border-medium);
+    transform: none !important;
+}
+
+.STEPPER_CANTIDAD input[type="number"] {
+    width: 46px !important;
+    height: 32px;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-left: 1px solid var(--border-subtle) !important;
+    border-right: 1px solid var(--border-subtle) !important;
+    border-radius: 0 !important;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.RESUMEN_BANDEJA {
+    background: var(--bg-surface-warm);
+    border: 1.5px solid var(--accent-gold-border);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin: 24px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.RESUMEN_BANDEJA .LABEL {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.RESUMEN_BANDEJA .TOTAL_PEDIDO {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--accent-gold-dark);
+}
+
+.RESUMEN_BANDEJA .NOTA {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Kitchen Display System (KDS)
+   ========================================================================== */
+.KDS_SUBTITLE {
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    margin-top: -16px;
+    margin-bottom: 24px;
+}
+
+.KDS_COLUMNAS {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+    margin-top: 20px;
+}
+
+.KDS_COLUMNA {
+    background: var(--bg-surface-soft);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 20px;
+}
+
+.KDS_COLUMNA h2 {
+    margin-top: 0;
+    font-size: 1.15rem;
+}
+
+.KDS_CARDS {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.KDS_CARD {
+    background: #ffffff;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    box-shadow: var(--shadow-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.CARD_COLA {
+    border-left: 4px solid var(--accent-gold);
+}
+
+.CARD_PREP {
+    border-left: 4px solid var(--info);
+    background: #fbfdff;
+}
+
+.KDS_CARD_HEADER {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.KDS_MESA {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.KDS_PLATO_NAME {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 4px 0;
+}
+
+.KDS_TIEMPO {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.KDS_EMPTY {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    background: #ffffff;
+    border: 1px dashed var(--border-medium);
+    border-radius: var(--radius-sm);
+}
+
+.KDS_ACTION form {
+    margin: 4px 0 0 0;
+}
+
+.KDS_ACTION form button {
+    width: 100%;
+    margin-top: 6px;
+}
+
+/* ==========================================================================
+   Detalle de Comanda & Fechas
+   ========================================================================== */
+.PEDIDO_HEADER_CARD {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 18px 22px;
+    background: var(--bg-surface-soft);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+}
+
+.PEDIDO_TITULO h1 {
+    margin: 0 0 6px 0;
+    padding: 0;
+    border: none;
+}
+
+.PEDIDO_TITULO h1::after {
+    display: none;
+}
+
+.PEDIDO_TITULO p {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.PILLS_FECHAS {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.PILL_FECHA {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: #ffffff;
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-pill);
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.PILL_FECHA:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold-dark);
+    text-decoration: none;
+}
+
+.PILL_FECHA.PILL_ACTIVA {
+    background: var(--accent-gold);
+    color: #ffffff;
+    border-color: var(--accent-gold);
+    font-weight: 600;
+}
+
+details.CARD_FORM {
+    background: var(--bg-surface-soft);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px 20px;
+    margin: 20px 0;
+}
+
+details.CARD_FORM summary {
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 0.96rem;
 }
 
 /* ==========================================================================

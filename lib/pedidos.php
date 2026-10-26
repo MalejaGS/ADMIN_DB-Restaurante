@@ -103,38 +103,102 @@ function formulario_items($conn)
     if (!$rows) return '<p>No hay platos disponibles.</p>';
     $tipos=array_values(array_unique(array_column($rows,'tipo')));
     $s='<div class="ITEMS_PEDIDO">';
-    $s.='<div class="FILTROS_CARTA"><input type="text" class="BUSCADOR_PLATOS" placeholder="🔍 Buscar plato por nombre..."><div class="PILLS_CATEGORIAS"><button type="button" class="PILL_ACTIVA" data-categoria="">Todas</button>';
+    $s.='<div class="FILTROS_CARTA"><input type="text" class="BUSCADOR_PLATOS" placeholder="🔍 Buscar plato por nombre..."><div class="PILLS_CATEGORIAS"><button type="button" class="PILL_ACTIVA" data-categoria="">Todas las categorías</button>';
     foreach($tipos as $t) $s.='<button type="button" data-categoria="'.h($t).'">'.h($t).'</button>';
     $s.='</div></div>';
+    $s.='<div class="GRILLA_PLATOS">';
     foreach($rows as $p) {
-        $s.='<div class="PLATO" data-tipo="'.h($p['tipo']).'" data-nombre="'.h(mb_strtolower($p['nombre'])).'"><span class="NOMBRE">'.h($p['nombre']).'</span> <span class="DESCRIPCION">'.h($p['tipo']).'</span> <span class="PRECIO">'.h(dinero($p['precio'])).'</span> <label>Cantidad <input type="number" name="cantidad['.(int)$p['id'].']" min="0" max="1000" value="0" data-precio="'.h($p['precio']).'"></label></div>';
+        $s.='<div class="PLATO_CARD" data-tipo="'.h($p['tipo']).'" data-nombre="'.h(mb_strtolower($p['nombre'])).'">
+            <div class="PLATO_INFO">
+                <span class="PLATO_NOMBRE">'.h($p['nombre']).'</span>
+                <span class="PLATO_TIPO">'.h($p['tipo']).'</span>
+            </div>
+            <div class="PLATO_PRECIO_COL">
+                <span class="PLATO_PRECIO">'.h(dinero($p['precio'])).'</span>
+                <div class="STEPPER_CANTIDAD">
+                    <button type="button" class="BTN_STEP BTN_MENOS" aria-label="Disminuir">−</button>
+                    <input type="number" name="cantidad['.(int)$p['id'].']" min="0" max="1000" value="0" data-precio="'.h($p['precio']).'">
+                    <button type="button" class="BTN_STEP BTN_MAS" aria-label="Aumentar">+</button>
+                </div>
+            </div>
+        </div>';
     }
-    return $s.'<p>Total de nuevos ítems: <output class="TOTAL_PEDIDO">$0,00</output></p><p>El servidor confirma los precios vigentes al guardar.</p></div>';
+    $s.='</div>';
+    $s.='<div class="RESUMEN_BANDEJA"><span class="LABEL">Subtotal acumulado:</span> <output class="TOTAL_PEDIDO">$0,00</output><p class="NOTA">El precio unitario y autorización de cocina se validan al guardar.</p></div>';
+    return $s.'</div>';
 }
 function selector_cliente($conn,$seleccionado=null)
 {
-    $s=campo('cliente_id','ID del cliente',$seleccionado??'','number','min="1" required');
-    if ($seleccionado) {
-        $u=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$seleccionado]);
-        $s.='<span>'.h($u['nombre']??'').'</span>';
+    $clientes=filas($conn,"SELECT u.id,u.nombre FROM usuarios u JOIN actuaciones a ON a.usuario_id=u.id JOIN roles r ON r.id=a.rol_id WHERE u.activo AND r.nombre='Cliente' ORDER BY u.nombre");
+    $s='<label class="CAMPO_CLIENTE">Cliente registrado de la reserva / mesa <select name="cliente_id" id="selector_cliente_id" required>';
+    $s.='<option value="">-- Seleccionar cliente --</option>';
+    foreach($clientes as $c) {
+        $sel=((string)$seleccionado===(string)$c['id'])?' selected':'';
+        $s.='<option value="'.(int)$c['id'].'"'.$sel.'>'.h($c['nombre']).' (ID: '.(int)$c['id'].')</option>';
     }
-    return $s.'<p>Puede buscar el ID en '.enlace('Clientes','clientes').'.</p>';
+    $s.='</select></label>';
+    $s.='<p class="AYUDA_INPUT">¿El comensal es nuevo? '.enlace('+ Registrar cliente en un clic','clientes').'</p>';
+    return $s;
 }
 function fn_realizar_pedidos($conn)
 {
     exigir('Administrador','Mesero');
-    $s='<h1>'.(puede('Mesero')?'Realizar pedido':'Pedidos').'</h1>';
+    $s='<h1>'.(puede('Mesero')?'Plano de Sala & Pedidos':'Gestión de Pedidos en Sala').'</h1>';
     $mesas=filas($conn,'SELECT id,sillas FROM mesas ORDER BY id');
     if (!isset($_GET['mesa_id'])) {
-        $s.='<div class="MENU_OPCIONES">';
-        if (puede('Mesero')) foreach($mesas as $m) $s.='<button onclick="location.href=\''.h(url('realizar_pedidos',['mesa_id'=>$m['id']])).'\'">Mesa '.(int)$m['id'].'<br>'.(int)$m['sillas'].' sillas</button>';
-        $s.='</div><h2>Pedidos recientes</h2>';
+        // Consultar ocupación actual de mesas en tiempo real
+        $abiertos=filas($conn,"SELECT p.id,p.mesa_id,u.nombre AS cliente,count(o.id) AS total_items,count(o.id) FILTER(WHERE o.estado=4) AS listos FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id JOIN ordenes o ON o.pedido_id=p.id GROUP BY p.id,p.mesa_id,u.nombre HAVING count(o.id) > count(o.id) FILTER(WHERE o.estado=3)");
+        $pedidosPorMesa=[];
+        foreach($abiertos as $ab) $pedidosPorMesa[$ab['mesa_id']]=$ab;
+
+        $reservasHoy=filas($conn,"SELECT h.mesa_id,r.id,u.nombre AS cliente,h.inicio FROM reservaciones r JOIN horarios h ON h.reservacion_id=r.id JOIN usuarios u ON u.id=r.cliente_id WHERE r.estado IN (1,2) AND LOCALTIMESTAMP >= h.inicio AND LOCALTIMESTAMP < h.inicio+greatest(h.duracion,interval '2 hours')");
+        $reservasPorMesa=[];
+        foreach($reservasHoy as $rh) $reservasPorMesa[$rh['mesa_id']]=$rh;
+
+        $s.='<div class="PLANO_SALA">';
+        foreach($mesas as $m) {
+            $mId=(int)$m['id'];
+            $tienePedido=isset($pedidosPorMesa[$mId]);
+            $tieneReserva=isset($reservasPorMesa[$mId]);
+            
+            $claseEstado='MESA_LIBRE';
+            $textoEstado='🟢 Libre';
+            $detalle='';
+            $botonAccion=enlace('+ Abrir Pedido','realizar_pedidos',['mesa_id'=>$mId]);
+
+            if ($tienePedido) {
+                $claseEstado='MESA_OCUPADA';
+                $p=$pedidosPorMesa[$mId];
+                $textoEstado='🔵 Ocupada · Pedido #'.$p['id'];
+                $detalle='<span class="MESA_CLIENTE">'.h($p['cliente']).'</span><span class="MESA_ITEMS">'.$p['total_items'].' platos'.($p['listos']>0?' (🔔 '.$p['listos'].' listos)':'').'</span>';
+                $botonAccion=enlace('Ver Comanda #'.$p['id'],'pedido',['id'=>$p['id']]);
+            } elseif ($tieneReserva) {
+                $claseEstado='MESA_RESERVADA';
+                $r=$reservasPorMesa[$mId];
+                $textoEstado='🟡 Reservada ('.date('H:i',strtotime($r['inicio'])).')';
+                $detalle='<span class="MESA_CLIENTE">'.h($r['cliente']).'</span>';
+                $botonAccion=enlace('Tomar Reserva #'.$r['id'],'realizar_pedidos',['mesa_id'=>$mId,'reservacion_id'=>$r['id']]);
+            }
+
+            $s.='<div class="MESA_CARD '.$claseEstado.'">
+                <div class="MESA_CARD_TOP">
+                    <span class="MESA_NUM">Mesa '.$mId.'</span>
+                    <span class="MESA_SILLAS">🪑 '.(int)$m['sillas'].' puestos</span>
+                </div>
+                <div class="MESA_ESTADO_BADGE">'.$textoEstado.'</div>
+                <div class="MESA_DETALLE">'.$detalle.'</div>
+                <div class="MESA_BOTON">'.$botonAccion.'</div>
+            </div>';
+        }
+        $s.='</div>';
+
+        $s.='<h2>Historial de pedidos recientes en sala</h2>';
         $where=puede('Administrador')?'TRUE':'p.mesero_id=$1';
         $params=puede('Administrador')?[]:[$_SESSION['usuario_id']];
         $rows=filas($conn,"SELECT p.*,u.nombre FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id WHERE $where ORDER BY p.id DESC LIMIT 100",$params);
         $data=[];
-        foreach($rows as $p) $data[]=[enlace('#'.$p['id'],'pedido',['id'=>$p['id']]),h($p['mesa_id']??'Histórica sin mesa'),h($p['nombre']),h($p['creado']??'Fecha histórica desconocida'),h(estado_pedido($conn,$p['id']))];
-        return $s.tabla(['Pedido','Mesa','Cliente','Fecha','Estado'],$data).'<p>Se muestran hasta 100 pedidos recientes.</p>';
+        foreach($rows as $p) $data[]=[enlace('#'.$p['id'],'pedido',['id'=>$p['id']]),h($p['mesa_id']??'Histórica sin mesa'),h($p['nombre']),h($p['creado']??'Fecha histórica desconocida'),h(estado_pedido($conn,$p['id'])),enlace('Ver Comanda / Precuenta','pedido',['id'=>$p['id']])];
+        return $s.tabla(['Pedido','Mesa','Cliente','Fecha','Estado','Acción'],$data).'<p>Se muestran hasta 100 pedidos recientes.</p>';
     }
     exigir('Mesero');
     $mesa=entero($_GET['mesa_id'],'Mesa');
@@ -146,31 +210,42 @@ function fn_realizar_pedidos($conn)
         if (!$reserva) throw new DomainException('Reserva no vigente para esta mesa.');
     }
     foreach($reservas as $r) $s.=enlace('Usar reserva #'.$r['id'].' — '.$r['nombre'],'realizar_pedidos',['mesa_id'=>$mesa,'reservacion_id'=>$r['id']]);
-    return $s.'<h2>Mesa '.$mesa.'</h2>'.formulario('pedido_guardar',oculto('mesa_id',$mesa).oculto('reservacion_id',$reserva['id']??'').selector_cliente($conn,$reserva['cliente_id']??null).formulario_items($conn),'Registrar pedido');
+    return $s.'<h2>Tomar Comanda · Mesa '.$mesa.'</h2>'.formulario('pedido_guardar',oculto('mesa_id',$mesa).oculto('reservacion_id',$reserva['id']??'').selector_cliente($conn,$reserva['cliente_id']??null).formulario_items($conn),'Registrar comanda');
 }
 function fn_pedido($conn)
 {
     $id=entero($_GET['id']??null,'Pedido');
     $p=pedido_acceso($conn,$id);
     $u=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$p['cliente_id']]);
-    $s='<h1>Pedido #'.$id.'</h1><p>Mesa: '.h($p['mesa_id']??'desconocida (histórico)').' · Cliente: '.h($u['nombre']).' · '.h(estado_pedido($conn,$id)).'</p>';
+    $st=estado_pedido($conn,$id);
+    $stBadge='<span class="BADGE '.($st==='Entregado'?'BADGE_SUCCESS':($st==='Preparado'?'BADGE_INFO':'BADGE_WARNING')).'">'.h($st).'</span>';
+
+    $s='<div class="PEDIDO_HEADER_CARD">
+        <div class="PEDIDO_TITULO">
+            <h1>Pedido #'.$id.' '.$stBadge.'</h1>
+            <p>Mesa '.(int)($p['mesa_id']??0).' · Cliente: <strong>'.h($u['nombre']).'</strong></p>
+        </div>
+        <div class="PEDIDO_QUICK_ACTIONS">
+            '.enlace('🧾 Ver e Imprimir Precuenta','factura_pedido',['id'=>$id]).'
+        </div>
+    </div>';
     $rows=filas($conn,'SELECT o.*,p.nombre,p.precio AS precio_actual FROM ordenes o JOIN platos p ON p.id=o.plato_id WHERE o.pedido_id=$1 ORDER BY o.id',[$id]);
-    $estados=[1=>'En preparación (sin asignar)',2=>'En preparación',3=>'Entregado',4=>'Preparado'];
+    $estados=[1=>'En espera de cocina',2=>'En preparación al fuego',3=>'Entregado a la mesa',4=>'Preparado (Listo para servir)'];
     $data=[];$total=0;$estimado=0;
     foreach($rows as $r) {
         $historico=$r['precio_unitario']===null;
         $valor=($historico?$r['precio_actual']:$r['precio_unitario'])*$r['cantidad'];
         if ($historico) $estimado+=$valor; else $total+=$valor;
         $accion='';
-        if ($r['estado']==4) $accion=formulario('entregar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Entregar');
-        elseif ($r['estado']==1) $accion=formulario('orden_cancelar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Cancelar');
-        $data[]=[h($r['nombre']),h($r['cantidad']),h($estados[$r['estado']]),h(dinero($valor)).($historico?' (estimado)':''),$accion];
+        if ($r['estado']==4) $accion=formulario('entregar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'🔔 Entregar a mesa');
+        elseif ($r['estado']==1) $accion=formulario('orden_cancelar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'✕ Cancelar ítem');
+        $badgeClass=($r['estado']==3?'BADGE_SUCCESS':($r['estado']==4?'BADGE_INFO':'BADGE_WARNING'));
+        $data[]=[h($r['nombre']),h($r['cantidad']),'<span class="BADGE '.$badgeClass.'">'.h($estados[$r['estado']]).'</span>',h(dinero($valor)).($historico?' (estimado)':''),$accion];
     }
-    $s.=tabla(['Plato','Cantidad','Estado','Subtotal','Acción'],$data).'<p>Total con precio registrado: '.h(dinero($total)).'. Estimación histórica adicional: '.h(dinero($estimado)).'.</p>';
-    $s.='<p>'.enlace('🧾 Ver e Imprimir Precuenta / Factura de Mesa','factura_pedido',['id'=>$id]).'</p>';
+    $s.=tabla(['Plato','Cantidad','Estado','Subtotal','Acción'],$data).'<p>Total con precio registrado: <strong>'.h(dinero($total)).'</strong>.'.($estimado>0?' Estimación histórica: '.h(dinero($estimado)).'.':'').'</p>';
     if (estado_pedido($conn,$id)!=='Entregado') {
-        $s.='<details><summary>Cambiar mesa del pedido</summary>'.formulario('pedido_reasignar_mesa',oculto('pedido_id',$id).campo('nueva_mesa_id','Nueva mesa destino',$p['mesa_id']??'','number','min="1" required'),'Reasignar mesa').'</details>';
-        $s.='<h2>Agregar ítems</h2>'.formulario('pedido_agregar',oculto('pedido_id',$id).formulario_items($conn),'Agregar al pedido');
+        $s.='<details class="CARD_FORM"><summary>Mover pedido a otra mesa</summary>'.formulario('pedido_reasignar_mesa',oculto('pedido_id',$id).campo('nueva_mesa_id','Nueva mesa destino',$p['mesa_id']??'','number','min="1" required'),'Reasignar mesa').'</details>';
+        $s.='<h2>Agregar más platos a esta comanda</h2>'.formulario('pedido_agregar',oculto('pedido_id',$id).formulario_items($conn),'Agregar al pedido');
     }
     return $s;
 }
@@ -245,7 +320,64 @@ function fn_cocina($conn)
 {
     exigir('Cocinero');
     $rows=filas($conn,'SELECT o.*,p.nombre,p.tiempo,pe.mesa_id,pr.cocinero_id FROM ordenes o JOIN platos p ON p.id=o.plato_id JOIN pedidos pe ON pe.id=o.pedido_id JOIN especialidades e ON e.plato_id=o.plato_id AND e.cocinero_id=$1 LEFT JOIN preparaciones pr ON pr.orden_id=o.id WHERE o.estado=1 OR (o.estado=2 AND pr.cocinero_id=$1) ORDER BY p.tiempo DESC,o.solicitado,o.id',[$_SESSION['usuario_id']]);
-    $data=[];
-    foreach($rows as $r) $data[]=[h($r['pedido_id']),h($r['mesa_id']??'Desconocida'),h($r['nombre']),h($r['cantidad']),h($r['tiempo']),h($r['solicitado']),formulario('cocina',oculto('orden_id',$r['id']).oculto('paso',$r['estado']==1?'tomar':'preparar'),$r['estado']==1?'Tomar':'Marcar preparado')];
-    return '<h1>Preparación de platos</h1>'.tabla(['Pedido','Mesa','Plato','Cantidad','Tiempo','Solicitado','Acción'],$data);
+    
+    $porTomar=[];
+    $enPrep=[];
+    foreach($rows as $r) {
+        if ($r['estado']==1) $porTomar[]=$r;
+        elseif ($r['estado']==2) $enPrep[]=$r;
+    }
+
+    $s='<h1>Cocina · Kitchen Display System (KDS)</h1>';
+    $s.='<p class="KDS_SUBTITLE">Gestión visual de comandas en tiempo real según sus especialidades culinarias autorizadas</p>';
+
+    $s.='<div class="KDS_COLUMNAS">';
+
+    // Columna 1: Comandas en cola
+    $s.='<div class="KDS_COLUMNA KDS_COLA">';
+    $s.='<h2>🔔 Comandas en Cola ('.count($porTomar).')</h2>';
+    if (!$porTomar) {
+        $s.='<div class="KDS_EMPTY">✨ No hay platos pendientes por tomar en este momento.</div>';
+    } else {
+        $s.='<div class="KDS_CARDS">';
+        foreach($porTomar as $r) {
+            $s.='<div class="KDS_CARD CARD_COLA">
+                <div class="KDS_CARD_HEADER">
+                    <span class="KDS_MESA">Mesa '.(int)$r['mesa_id'].'</span>
+                    <span class="KDS_PEDIDO">Pedido #'.(int)$r['pedido_id'].'</span>
+                </div>
+                <div class="KDS_PLATO_NAME">'.(int)$r['cantidad'].'x '.h($r['nombre']).'</div>
+                <div class="KDS_TIEMPO">⏱️ '.(int)$r['tiempo'].' min · Solicitado: '.date('H:i',strtotime($r['solicitado'])).'</div>
+                <div class="KDS_ACTION">'.formulario('cocina',oculto('orden_id',$r['id']).oculto('paso','tomar'),'👨‍🍳 Tomar Comanda').'</div>
+            </div>';
+        }
+        $s.='</div>';
+    }
+    $s.='</div>';
+
+    // Columna 2: Mis platos en preparación
+    $s.='<div class="KDS_COLUMNA KDS_PREP">';
+    $s.='<h2>🔥 En mi Preparación / Al Fuego ('.count($enPrep).')</h2>';
+    if (!$enPrep) {
+        $s.='<div class="KDS_EMPTY">☕ No tienes platos en preparación activa en este momento.</div>';
+    } else {
+        $s.='<div class="KDS_CARDS">';
+        foreach($enPrep as $r) {
+            $s.='<div class="KDS_CARD CARD_PREP">
+                <div class="KDS_CARD_HEADER">
+                    <span class="KDS_MESA">Mesa '.(int)$r['mesa_id'].'</span>
+                    <span class="KDS_PEDIDO">Pedido #'.(int)$r['pedido_id'].'</span>
+                </div>
+                <div class="KDS_PLATO_NAME">'.(int)$r['cantidad'].'x '.h($r['nombre']).'</div>
+                <div class="KDS_TIEMPO">⏱️ '.(int)$r['tiempo'].' min · Cocinando desde: '.date('H:i',strtotime($r['solicitado'])).'</div>
+                <div class="KDS_ACTION">'.formulario('cocina',oculto('orden_id',$r['id']).oculto('paso','preparar'),'✅ Marcar Listo para Servir').'</div>
+            </div>';
+        }
+        $s.='</div>';
+    }
+    $s.='</div>';
+
+    $s.='</div>';
+    return $s;
 }
+

@@ -53,6 +53,6 @@ try {
     $contenido='<p role="alert">'.h($mensaje).'</p>';
 }
 $barra='';
-if (isset($_SESSION['usuario_id'])) $barra='<div class="SESION"><p>'.h($_SESSION['nombre']).' · '.h(implode(', ',$_SESSION['roles'])).'</p>'.fn_boton_menu_principal().formulario('logout','','Cerrar sesión').'</div>';
+if (isset($_SESSION['usuario_id'])) $barra=fn_barra_navegacion();
 if (isset($_SESSION['aviso'])) { $barra.='<p role="status">'.h($_SESSION['aviso']).'</p>';unset($_SESSION['aviso']); }
 print sprintf(file_get_contents(__DIR__.'/esqueleto.html'),$barra.$contenido);

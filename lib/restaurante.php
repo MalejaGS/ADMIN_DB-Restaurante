@@ -6,21 +6,59 @@ require_once __DIR__.'/menu.php';
 require_once __DIR__.'/reportes.php';
 require_once __DIR__.'/mesas.php';
 require_once __DIR__.'/empleados.php';
-function fn_boton_menu_principal() { return '<button onclick="location.href=\'index.php\'">Menu del programa</button>'; }
+function fn_boton_menu_principal() { return '<a href="index.php" class="BTN_SECUNDARIO">← Inicio</a>'; }
+function fn_barra_navegacion()
+{
+    if (!isset($_SESSION['usuario_id'])) return '';
+    $actual = $_GET['opcion'] ?? '';
+    $items = [
+        ['', 'Inicio', '🏠', true],
+        ['desplegar_menu', 'Menú', '📋', true],
+        ['realizar_pedidos', puede('Mesero') ? 'Sala & Pedidos' : 'Pedidos', '🍽️', puede('Mesero', 'Administrador')],
+        ['reservas', 'Reservaciones', '📅', puede('Maitre', 'Administrador')],
+        ['cocina', 'Cocina KDS', '👨‍🍳', puede('Cocinero')],
+        ['gestion_mesas', 'Mesas', '🪑', puede('Administrador')],
+        ['gestion_empleados', 'Personal', '👥', puede('Administrador')],
+        ['gestion_menu', 'Carta', '📖', puede('Administrador')],
+        ['reportes', 'Reportes', '📊', puede('Administrador')],
+        ['clientes', 'Clientes', '👤', puede('Administrador', 'Maitre', 'Mesero')]
+    ];
+    
+    $navLinks = '';
+    foreach ($items as [$op, $label, $icon, $allowed]) {
+        if (!$allowed) continue;
+        $isActiva = ($actual === $op) || ($op === 'realizar_pedidos' && in_array($actual, ['pedido', 'factura_pedido'], true));
+        $navLinks .= '<a href="'.h(url($op)).'" class="APP_NAV_LINK'.($isActiva ? ' NAV_ACTIVA' : '').'"><span class="NAV_ICON">'.$icon.'</span> <span class="NAV_TEXT">'.h($label).'</span></a>';
+    }
+
+    $rolBadge = '<span class="ROL_BADGE">'.h(implode(' · ', $_SESSION['roles'])).'</span>';
+    $logoutBtn = formulario('logout', '', 'Cerrar sesión');
+
+    return '
+    <div class="SESION">
+        <nav class="SESION_NAV" aria-label="Navegación principal">
+            '.$navLinks.'
+        </nav>
+        <div class="SESION_USER">
+            <span class="USER_INFO"><strong>'.h($_SESSION['nombre']).'</strong> '.$rolBadge.'</span>
+            '.$logoutBtn.'
+        </div>
+    </div>';
+}
 function fn_menu_opciones($conn)
 {
     $items=[
         ['desplegar_menu','Desplegar Menú',true],
-        ['realizar_pedidos',puede('Mesero')?'Realizar Pedido':'Pedidos',puede('Mesero','Administrador')],
+        ['realizar_pedidos',puede('Mesero')?'Plano de Sala & Pedidos':'Pedidos',puede('Mesero','Administrador')],
         ['reservas','Reservaciones',puede('Maitre','Administrador')],
         ['gestion_mesas','Gestión de Mesas',puede('Administrador')],
         ['gestion_empleados','Gestión de Empleados',puede('Administrador')],
         ['gestion_menu','Actualizar Menú',puede('Administrador')],
         ['reportes','Reportes y Estadísticas',puede('Administrador')],
-        ['cocina','Preparación',puede('Cocinero')],
+        ['cocina','Cocina KDS',puede('Cocinero')],
         ['clientes','Clientes e Historial',puede('Administrador','Maitre','Mesero')]
     ];
-    $s='<h1>Panel Principal · '.h(implode(', ',$_SESSION['roles'])).'</h1>';
+    $s='<h1>Panel Operativo · '.h(implode(', ',$_SESSION['roles'])).'</h1>';
     $s.='<div class="MENU_OPCIONES">';
     foreach($items as [$op,$label,$allowed]) if ($allowed) $s.='<button onclick="location.href=\''.h(url($op)).'\'">'.h($label).'</button>';
     $s.='</div>';
