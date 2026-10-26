@@ -73,7 +73,24 @@ function fn_reservas($conn)
     $s='<h1>Reservaciones</h1><form method="get">'.oculto('opcion','reservas').campo('fecha','Fecha',$dia,'date','required').'<button>Consultar</button></form>';
     $consulta=isset($_GET['inicio_consulta'])?inicio_reserva($_GET['inicio_consulta']):null;
     $personas=isset($_GET['personas_consulta'])?entero($_GET['personas_consulta'],'Personas'):1;
-    $s.='<details'.($consulta?' open':'').'><summary>Consultar disponibilidad</summary><form method="get">'.oculto('opcion','reservas').oculto('fecha',$dia).campo('inicio_consulta','Inicio',isset($_GET['inicio_consulta'])?$_GET['inicio_consulta']:(new DateTimeImmutable('+1 hour'))->format('Y-m-d\TH:i'),'datetime-local','required').campo('personas_consulta','Personas',$personas,'number','min="1" required').'<button>Consultar mesas</button></form>';
+    $s.='<details'.($consulta?' open':'').'><summary>Consultar disponibilidad y franjas horarias</summary><form method="get">'.oculto('opcion','reservas').oculto('fecha',$dia).campo('inicio_consulta','Inicio',isset($_GET['inicio_consulta'])?$_GET['inicio_consulta']:(new DateTimeImmutable('+1 hour'))->format('Y-m-d\TH:i'),'datetime-local','required').campo('personas_consulta','Personas',$personas,'number','min="1" required').'<button>Consultar mesas</button></form>';
+
+    $cupoMesas=fila($conn,'SELECT COALESCE(sum(sillas),0) AS total_sillas FROM mesas');
+    $aforoTotal=(int)$cupoMesas['total_sillas'];
+    $slots=['12:00','14:00','16:00','18:00','20:00','22:00'];
+    $dataSlots=[];
+    foreach($slots as $slot) {
+        $slotInicio=$dia.' '.$slot;
+        $slotRes=fila($conn,"SELECT count(DISTINCT r.id) AS reservas, COALESCE(sum(r.cantidad), 0) AS comensales FROM reservaciones r JOIN horarios h ON h.reservacion_id=r.id WHERE r.estado<>4 AND tsrange(h.inicio, h.inicio+greatest(h.duracion, interval '2 hours'), '[)') && tsrange($1::timestamp, $1::timestamp+interval '2 hours', '[)')",[$slotInicio]);
+        $ocupados=(int)$slotRes['comensales'];
+        $libres=max(0,$aforoTotal-$ocupados);
+        $porc=$aforoTotal>0?round(($ocupados/$aforoTotal)*100):0;
+        $estadoSlot=$libres>0?'Disponible ('.$libres.' cupos)':'Completo';
+        $accionSlot=enlace('Elegir franja '.$slot,'reservas',['fecha'=>$dia,'inicio_consulta'=>$dia.'T'.$slot,'personas_consulta'=>$personas]);
+        $dataSlots[]=[h($slot.' a '.date('H:i',strtotime($slot.' +2 hours'))),h($slotRes['reservas']),h($ocupados.' / '.$aforoTotal.' ('.$porc.'%)'),h($estadoSlot),$accionSlot];
+    }
+    $s.='<h3>Disponibilidad por franja horaria (día '.$dia.')</h3>'.tabla(['Franja de 2 horas','Reservas','Ocupación','Estado','Acción rápida'],$dataSlots);
+
     if ($consulta) {
         // mesas es distribuida en la instalación real (Citus); consultar por
         // separado evita un join correlacionado entre datos locales y shards.
