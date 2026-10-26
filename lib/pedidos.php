@@ -161,10 +161,56 @@ function fn_pedido($conn)
         $data[]=[h($r['nombre']),h($r['cantidad']),h($estados[$r['estado']]),h(dinero($valor)).($historico?' (estimado)':''),$accion];
     }
     $s.=tabla(['Plato','Cantidad','Estado','Subtotal','Acción'],$data).'<p>Total con precio registrado: '.h(dinero($total)).'. Estimación histórica adicional: '.h(dinero($estimado)).'.</p>';
+    $s.='<p>'.enlace('🧾 Ver e Imprimir Precuenta / Factura de Mesa','factura_pedido',['id'=>$id]).'</p>';
     if (estado_pedido($conn,$id)!=='Entregado') {
         $s.='<details><summary>Cambiar mesa del pedido</summary>'.formulario('pedido_reasignar_mesa',oculto('pedido_id',$id).campo('nueva_mesa_id','Nueva mesa destino',$p['mesa_id']??'','number','min="1" required'),'Reasignar mesa').'</details>';
         $s.='<h2>Agregar ítems</h2>'.formulario('pedido_agregar',oculto('pedido_id',$id).formulario_items($conn),'Agregar al pedido');
     }
+    return $s;
+}
+function fn_factura_pedido($conn)
+{
+    $id=entero($_GET['id']??null,'Pedido');
+    $p=pedido_acceso($conn,$id);
+    $cliente=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$p['cliente_id']]);
+    $mesero=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$p['mesero_id']]);
+    $items=filas($conn,'SELECT o.*,pl.nombre,pl.precio AS precio_vigente FROM ordenes o JOIN platos pl ON pl.id=o.plato_id WHERE o.pedido_id=$1 ORDER BY o.id',[$id]);
+
+    $subtotal=0;
+    $filasTabla=[];
+    foreach($items as $it) {
+        $precio=$it['precio_unitario']!==null?(float)$it['precio_unitario']:(float)$it['precio_vigente'];
+        $valor=$precio*(int)$it['cantidad'];
+        $subtotal+=$valor;
+        $filasTabla[]=[
+            h($it['cantidad']),
+            h($it['nombre']),
+            h(dinero($precio)),
+            h(dinero($valor))
+        ];
+    }
+    $propina=$subtotal*0.10;
+    $totalConServicio=$subtotal+$propina;
+
+    $s='<div class="FACTURA_CONTAINER">';
+    $s.='<p>'.enlace('← Volver al Pedido #'.$id,'pedido',['id'=>$id]).'</p>';
+    $s.='<div class="FACTURA_TICKET">';
+    $s.='<div class="FACTURA_HEADER"><h2>RESTAURANTE URBANO</h2><p>FINE DINING & COCKTAIL BAR</p><p>Nit: 900.824.112-5 · Régimen Común</p></div>';
+    $s.='<div class="FACTURA_INFO">';
+    $s.='<p><strong>Precuenta / Factura:</strong> #'.$id.'</p>';
+    $s.='<p><strong>Mesa:</strong> '.h($p['mesa_id']??'Sin mesa').' | <strong>Fecha:</strong> '.h($p['creado']??date('Y-m-d H:i')).'</p>';
+    $s.='<p><strong>Cliente:</strong> '.h($cliente['nombre']??'Cliente General').'</p>';
+    $s.='<p><strong>Mesero:</strong> '.h($mesero['nombre']??'Personal de Sala').'</p>';
+    $s.='</div>';
+    $s.=tabla(['Cant.','Descripción','Unitario','Subtotal'],$filasTabla);
+    $s.='<div class="FACTURA_TOTALES">';
+    $s.='<p><span>Subtotal Neto:</span> <strong>'.h(dinero($subtotal)).'</strong></p>';
+    $s.='<p><span>Servicio Sugerido (10% voluntario):</span> <strong>'.h(dinero($propina)).'</strong></p>';
+    $s.='<p class="FACTURA_GRAN_TOTAL"><span>TOTAL A PAGAR:</span> <strong>'.h(dinero($totalConServicio)).'</strong></p>';
+    $s.='</div>';
+    $s.='<div class="FACTURA_FOOTER"><p>¡Gracias por su visita!</p><p>Documento informativo de consumo.</p></div>';
+    $s.='<p><button type="button" onclick="window.print()">🖨️ Imprimir Precuenta</button></p>';
+    $s.='</div></div>';
     return $s;
 }
 function accion_cocina($conn)

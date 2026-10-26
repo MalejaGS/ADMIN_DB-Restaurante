@@ -38,7 +38,7 @@ try {
     }
     if (!isset($_SESSION['usuario_id'])) $contenido=fn_login($conn);
     else {
-        $rutas=[''=>'fn_menu_opciones','desplegar_menu'=>'fn_desplegar_menu','realizar_pedidos'=>'fn_realizar_pedidos','pedido'=>'fn_pedido','reservas'=>'fn_reservas','clientes'=>'fn_clientes','gestion_menu'=>'fn_gestion_menu','reportes'=>'fn_reportes','cocina'=>'fn_cocina','gestion_mesas'=>'fn_gestion_mesas','gestion_empleados'=>'fn_gestion_empleados'];
+        $rutas=[''=>'fn_menu_opciones','desplegar_menu'=>'fn_desplegar_menu','realizar_pedidos'=>'fn_realizar_pedidos','pedido'=>'fn_pedido','factura_pedido'=>'fn_factura_pedido','reservas'=>'fn_reservas','clientes'=>'fn_clientes','gestion_menu'=>'fn_gestion_menu','reportes'=>'fn_reportes','cocina'=>'fn_cocina','gestion_mesas'=>'fn_gestion_mesas','gestion_empleados'=>'fn_gestion_empleados'];
         $opcion=$_GET['opcion']??'';
         if (!is_string($opcion)||!isset($rutas[$opcion])) { http_response_code(404);throw new DomainException('Página no encontrada.'); }
         $contenido=$rutas[$opcion]($conn);
