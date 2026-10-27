@@ -44,9 +44,11 @@ function url($opcion = '', $params = []) { return '?'.http_build_query(['opcion'
 function enlace($label,$opcion='',$params=[]) { return '<a href="'.h(url($opcion,$params)).'">'.h($label).'</a>'; }
 function campo($name,$label,$value='',$type='text',$extra='') { return '<label>'.h($label).' <input type="'.h($type).'" name="'.h($name).'" value="'.h($value).'" '.$extra.'></label>'; }
 function oculto($name,$value) { return '<input type="hidden" name="'.h($name).'" value="'.h($value).'">'; }
-function formulario($accion,$contenido,$label='Guardar')
+// $label=null omite el botón (el contenido ya trae su propio submit).
+function formulario($accion,$contenido,$label='Guardar',$clase='')
 {
-    return '<form method="post" action="index.php">'.oculto('accion',$accion).oculto('csrf',$_SESSION['csrf']).oculto('token',bin2hex(random_bytes(24))).$contenido.'<button type="submit">'.h($label).'</button></form>';
+    $boton=$label===null?'':'<button type="submit"'.($clase!==''?' class="'.h($clase).'"':'').'>'.h($label).'</button>';
+    return '<form method="post" action="index.php">'.oculto('accion',$accion).oculto('csrf',$_SESSION['csrf']).oculto('token',bin2hex(random_bytes(24))).$contenido.$boton.'</form>';
 }
 function opciones($rows,$value,$label,$selected=null,$empty=true)
 {
@@ -54,15 +56,46 @@ function opciones($rows,$value,$label,$selected=null,$empty=true)
     foreach($rows as $r) $s.='<option value="'.h($r[$value]).'"'.((string)$selected===(string)$r[$value]?' selected':'').'>'.h($r[$label]).'</option>';
     return $s;
 }
-function tabla($headers,$rows)
+function tabla($headers,$rows,$vacio='No hay resultados para esta consulta.')
 {
-    if (!$rows) return '<p>No hay resultados para esta consulta.</p>';
+    if (!$rows) return '<p class="VACIO">'.h($vacio).'</p>';
     $s='<div class="TABLA"><table><thead><tr>';
     foreach($headers as $v) $s.='<th>'.h($v).'</th>';
     $s.='</tr></thead><tbody>';
     foreach($rows as $r) { $s.='<tr>'; foreach($r as $v) $s.='<td>'.$v.'</td>'; $s.='</tr>'; }
     return $s.'</tbody></table></div>';
 }
+// ---- Componentes de diagramación compartidos ----
+function encabezado($tituloHtml,$metaHtml='',$accionesHtml='')
+{
+    return '<div class="PAGE_HEAD"><div class="PAGE_TITULO"><h1>'.$tituloHtml.'</h1>'.($metaHtml!==''?'<p class="PAGE_META">'.$metaHtml.'</p>':'').'</div>'.($accionesHtml!==''?'<div class="PAGE_ACTIONS">'.$accionesHtml.'</div>':'').'</div>';
+}
+function seccion($titulo,$contenido,$extraHtml='')
+{
+    return '<section class="BLOQUE"><div class="BLOQUE_HEAD"><h2>'.h($titulo).'</h2>'.$extraHtml.'</div>'.$contenido.'</section>';
+}
+function kpis($items)
+{
+    $s='<dl class="KPIS">';
+    foreach($items as [$label,$valorHtml]) $s.='<div><dt>'.h($label).'</dt><dd>'.$valorHtml.'</dd></div>';
+    return $s.'</dl>';
+}
+function estado($texto,$tono='neutro') { return '<span class="ESTADO ESTADO_'.strtoupper($tono).'">'.h($texto).'</span>'; }
+function boton($label,$opcion,$params=[],$clase='BTN') { return '<a class="'.h($clase).'" href="'.h(url($opcion,$params)).'">'.h($label).'</a>'; }
+function plegable($resumen,$contenido,$abierto=false,$id='')
+{
+    return '<details class="PANEL"'.($id!==''?' id="'.h($id).'"':'').($abierto?' open':'').'><summary>'.h($resumen).'</summary><div class="PANEL_BODY">'.$contenido.'</div></details>';
+}
+function hora_corta($ts) { return $ts?date('H:i',strtotime($ts)):'—'; }
+function fecha_corta($ts) { return $ts?date('d/m/Y H:i',strtotime($ts)):'—'; }
+function fecha_larga($ymd)
+{
+    $dias=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    $meses=['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    $t=strtotime($ymd);
+    return $dias[(int)date('w',$t)].' '.(int)date('j',$t).' de '.$meses[(int)date('n',$t)];
+}
+function num($valorHtml) { return '<span class="NUM">'.$valorHtml.'</span>'; }
 function redirigir($destino) { header('Location: '.$destino, true, 303); exit; }
 function roles_usuario($conn,$id)
 {

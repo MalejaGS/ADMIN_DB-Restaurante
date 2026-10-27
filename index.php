@@ -52,7 +52,7 @@ try {
     $mensaje=$conn===null?$e->getMessage():'No se pudo completar la operación. Revise la conexión y que la migración esté aplicada.';
     $contenido='<p role="alert">'.h($mensaje).'</p>';
 }
-$barra='';
-if (isset($_SESSION['usuario_id'])) $barra=fn_barra_navegacion();
-if (isset($_SESSION['aviso'])) { $barra.='<p role="status">'.h($_SESSION['aviso']).'</p>';unset($_SESSION['aviso']); }
-print sprintf(file_get_contents(__DIR__.'/esqueleto.html'),$barra.$contenido);
+$barra=isset($_SESSION['usuario_id'])?fn_barra_navegacion():'';
+$aviso='';
+if (isset($_SESSION['aviso'])) { $aviso='<p role="status">'.h($_SESSION['aviso']).'</p>';unset($_SESSION['aviso']); }
+print sprintf(file_get_contents(__DIR__.'/esqueleto.html'),$barra,$aviso.$contenido);

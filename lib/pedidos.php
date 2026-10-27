@@ -97,109 +97,112 @@ function accion_orden_cancelar($conn)
     db($conn,'DELETE FROM ordenes WHERE id=$1',[$orden]);
     return url('pedido',['id'=>$id]);
 }
+function estado_pedido_html($st)
+{
+    $tonos=['Entregado'=>['Cerrado','neutro'],'Preparado'=>['Listo para servir','ok'],'En preparación'=>['En cocina','alerta']];
+    [$t,$tono]=$tonos[$st]??[$st,'neutro'];
+    return estado($t,$tono);
+}
+function estado_orden_html($e)
+{
+    $m=[1=>['En cola','alerta'],2=>['Preparando','info'],4=>['Listo','ok'],3=>['Servido','neutro']];
+    [$t,$tono]=$m[(int)$e]??['—','neutro'];
+    return estado($t,$tono);
+}
 function formulario_items($conn)
 {
     $rows=filas($conn,'SELECT p.id,p.nombre,p.precio,t.nombre AS tipo FROM platos p JOIN tipos t ON t.id=p.tipo_id WHERE p.activo ORDER BY t.nombre,p.nombre');
-    if (!$rows) return '<p>No hay platos disponibles.</p>';
+    if (!$rows) return '<p class="VACIO">No hay platos disponibles.</p>';
     $tipos=array_values(array_unique(array_column($rows,'tipo')));
-    $s='<div class="ITEMS_PEDIDO">';
-    $s.='<div class="FILTROS_CARTA"><input type="text" class="BUSCADOR_PLATOS" placeholder="🔍 Buscar plato por nombre..."><div class="PILLS_CATEGORIAS"><button type="button" class="PILL_ACTIVA" data-categoria="">Todas las categorías</button>';
+    $s='<div class="CARTA_FILTROS"><input type="search" class="BUSCADOR_PLATOS" placeholder="Buscar plato" aria-label="Buscar plato">';
+    $s.='<div class="PILLS_CATEGORIAS" role="group" aria-label="Categorías"><button type="button" class="PILL_ACTIVA" data-categoria="">Todo</button>';
     foreach($tipos as $t) $s.='<button type="button" data-categoria="'.h($t).'">'.h($t).'</button>';
     $s.='</div></div>';
-    $s.='<div class="GRILLA_PLATOS">';
+    $tipo=null;
     foreach($rows as $p) {
-        $s.='<div class="PLATO_CARD" data-tipo="'.h($p['tipo']).'" data-nombre="'.h(mb_strtolower($p['nombre'])).'">
-            <div class="PLATO_INFO">
-                <span class="PLATO_NOMBRE">'.h($p['nombre']).'</span>
-                <span class="PLATO_TIPO">'.h($p['tipo']).'</span>
-            </div>
-            <div class="PLATO_PRECIO_COL">
-                <span class="PLATO_PRECIO">'.h(dinero($p['precio'])).'</span>
-                <div class="STEPPER_CANTIDAD">
-                    <button type="button" class="BTN_STEP BTN_MENOS" aria-label="Disminuir">−</button>
-                    <input type="number" name="cantidad['.(int)$p['id'].']" min="0" max="1000" value="0" data-precio="'.h($p['precio']).'">
-                    <button type="button" class="BTN_STEP BTN_MAS" aria-label="Aumentar">+</button>
-                </div>
-            </div>
-        </div>';
+        if ($tipo!==$p['tipo']) {
+            if ($tipo!==null) $s.='</div>';
+            $tipo=$p['tipo'];
+            $s.='<div class="CARTA_GRUPO" data-tipo="'.h($tipo).'"><h3>'.h($tipo).'</h3>';
+        }
+        $s.='<div class="PLATO_FILA" data-nombre="'.h(mb_strtolower($p['nombre'])).'">'
+            .'<span class="PLATO_NOMBRE">'.h($p['nombre']).'</span>'
+            .'<span class="PLATO_PRECIO">'.h(dinero($p['precio'])).'</span>'
+            .'<span class="STEPPER"><button type="button" class="BTN_STEP BTN_MENOS" aria-label="Quitar uno">−</button>'
+            .'<input type="number" name="cantidad['.(int)$p['id'].']" min="0" max="1000" value="0" inputmode="numeric" data-precio="'.h($p['precio']).'" aria-label="Cantidad de '.h($p['nombre']).'">'
+            .'<button type="button" class="BTN_STEP BTN_MAS" aria-label="Agregar uno">+</button></span></div>';
     }
-    $s.='</div>';
-    $s.='<div class="RESUMEN_BANDEJA"><span class="LABEL">Subtotal acumulado:</span> <output class="TOTAL_PEDIDO">$0,00</output><p class="NOTA">El precio unitario y autorización de cocina se validan al guardar.</p></div>';
     return $s.'</div>';
+}
+// Carta a la izquierda, resumen fijo a la derecha con el único botón de envío.
+function comanda($conn,$extraResumen,$etiquetaBoton)
+{
+    return '<div class="COMANDA ITEMS_PEDIDO"><div class="COMANDA_CARTA">'.formulario_items($conn).'</div>'
+        .'<aside class="COMANDA_RESUMEN">'.$extraResumen
+        .'<h3>Platos</h3><ol class="RESUMEN_LISTA"><li class="RESUMEN_VACIO">Aún no ha agregado platos.</li></ol>'
+        .'<div class="RESUMEN_TOTAL"><span>Total</span><output class="TOTAL_PEDIDO">$0</output></div>'
+        .'<button type="submit" class="BTN BTN_BLOQUE BTN_COMANDA">'.h($etiquetaBoton).'</button>'
+        .'<p class="NOTA">El precio final se confirma al guardar.</p></aside></div>';
 }
 function selector_cliente($conn,$seleccionado=null)
 {
     $clientes=filas($conn,"SELECT u.id,u.nombre FROM usuarios u JOIN actuaciones a ON a.usuario_id=u.id JOIN roles r ON r.id=a.rol_id WHERE u.activo AND r.nombre='Cliente' ORDER BY u.nombre");
-    $s='<label class="CAMPO_CLIENTE">Cliente registrado de la reserva / mesa <select name="cliente_id" id="selector_cliente_id" required>';
-    $s.='<option value="">-- Seleccionar cliente --</option>';
-    foreach($clientes as $c) {
-        $sel=((string)$seleccionado===(string)$c['id'])?' selected':'';
-        $s.='<option value="'.(int)$c['id'].'"'.$sel.'>'.h($c['nombre']).' (ID: '.(int)$c['id'].')</option>';
-    }
-    $s.='</select></label>';
-    $s.='<p class="AYUDA_INPUT">¿El comensal es nuevo? '.enlace('+ Registrar cliente en un clic','clientes').'</p>';
-    return $s;
+    $s='<label>Cliente <select name="cliente_id" required><option value="">Seleccione un cliente</option>';
+    foreach($clientes as $c) $s.='<option value="'.(int)$c['id'].'"'.((string)$seleccionado===(string)$c['id']?' selected':'').'>'.h($c['nombre']).' (#'.(int)$c['id'].')</option>';
+    $s.='</select>';
+    // Solo Maitre y Administrador pueden registrar clientes.
+    if (puede('Administrador','Maitre')) $s.='<span class="NOTA">'.enlace('Registrar cliente nuevo','clientes',['nuevo'=>1]).'</span>';
+    return $s.'</label>';
 }
 function fn_realizar_pedidos($conn)
 {
     exigir('Administrador','Mesero');
-    $s='<h1>'.(puede('Mesero')?'Plano de Sala & Pedidos':'Gestión de Pedidos en Sala').'</h1>';
+    if (isset($_GET['mesa_id'])) return fn_tomar_pedido($conn);
+    $mesero=puede('Mesero');
     $mesas=filas($conn,'SELECT id,sillas FROM mesas ORDER BY id');
-    if (!isset($_GET['mesa_id'])) {
-        // Consultar ocupación actual de mesas en tiempo real
-        $abiertos=filas($conn,"SELECT p.id,p.mesa_id,u.nombre AS cliente,count(o.id) AS total_items,count(o.id) FILTER(WHERE o.estado=4) AS listos FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id JOIN ordenes o ON o.pedido_id=p.id GROUP BY p.id,p.mesa_id,u.nombre HAVING count(o.id) > count(o.id) FILTER(WHERE o.estado=3)");
-        $pedidosPorMesa=[];
-        foreach($abiertos as $ab) $pedidosPorMesa[$ab['mesa_id']]=$ab;
+    $abiertos=filas($conn,"SELECT p.id,p.mesa_id,u.nombre AS cliente,count(o.id) AS total,count(o.id) FILTER(WHERE o.estado=4) AS listos FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id JOIN ordenes o ON o.pedido_id=p.id GROUP BY p.id,p.mesa_id,u.nombre HAVING count(o.id) > count(o.id) FILTER(WHERE o.estado=3)");
+    $porMesa=[];
+    foreach($abiertos as $a) $porMesa[(int)$a['mesa_id']]=$a;
+    $reservas=filas($conn,"SELECT h.mesa_id,r.id,u.nombre AS cliente,h.inicio FROM reservaciones r JOIN horarios h ON h.reservacion_id=r.id JOIN usuarios u ON u.id=r.cliente_id WHERE r.estado IN (1,2) AND LOCALTIMESTAMP >= h.inicio AND LOCALTIMESTAMP < h.inicio+greatest(h.duracion,interval '2 hours')");
+    $resMesa=[];
+    foreach($reservas as $r) $resMesa[(int)$r['mesa_id']]=$r;
 
-        $reservasHoy=filas($conn,"SELECT h.mesa_id,r.id,u.nombre AS cliente,h.inicio FROM reservaciones r JOIN horarios h ON h.reservacion_id=r.id JOIN usuarios u ON u.id=r.cliente_id WHERE r.estado IN (1,2) AND LOCALTIMESTAMP >= h.inicio AND LOCALTIMESTAMP < h.inicio+greatest(h.duracion,interval '2 hours')");
-        $reservasPorMesa=[];
-        foreach($reservasHoy as $rh) $reservasPorMesa[$rh['mesa_id']]=$rh;
-
-        $s.='<div class="PLANO_SALA">';
-        foreach($mesas as $m) {
-            $mId=(int)$m['id'];
-            $tienePedido=isset($pedidosPorMesa[$mId]);
-            $tieneReserva=isset($reservasPorMesa[$mId]);
-            
-            $claseEstado='MESA_LIBRE';
-            $textoEstado='🟢 Libre';
-            $detalle='';
-            $botonAccion=enlace('+ Abrir Pedido','realizar_pedidos',['mesa_id'=>$mId]);
-
-            if ($tienePedido) {
-                $claseEstado='MESA_OCUPADA';
-                $p=$pedidosPorMesa[$mId];
-                $textoEstado='🔵 Ocupada · Pedido #'.$p['id'];
-                $detalle='<span class="MESA_CLIENTE">'.h($p['cliente']).'</span><span class="MESA_ITEMS">'.$p['total_items'].' platos'.($p['listos']>0?' (🔔 '.$p['listos'].' listos)':'').'</span>';
-                $botonAccion=enlace('Ver Comanda #'.$p['id'],'pedido',['id'=>$p['id']]);
-            } elseif ($tieneReserva) {
-                $claseEstado='MESA_RESERVADA';
-                $r=$reservasPorMesa[$mId];
-                $textoEstado='🟡 Reservada ('.date('H:i',strtotime($r['inicio'])).')';
-                $detalle='<span class="MESA_CLIENTE">'.h($r['cliente']).'</span>';
-                $botonAccion=enlace('Tomar Reserva #'.$r['id'],'realizar_pedidos',['mesa_id'=>$mId,'reservacion_id'=>$r['id']]);
-            }
-
-            $s.='<div class="MESA_CARD '.$claseEstado.'">
-                <div class="MESA_CARD_TOP">
-                    <span class="MESA_NUM">Mesa '.$mId.'</span>
-                    <span class="MESA_SILLAS">🪑 '.(int)$m['sillas'].' puestos</span>
-                </div>
-                <div class="MESA_ESTADO_BADGE">'.$textoEstado.'</div>
-                <div class="MESA_DETALLE">'.$detalle.'</div>
-                <div class="MESA_BOTON">'.$botonAccion.'</div>
-            </div>';
+    $ocupadas=0;$reservadas=0;$tarjetas='';
+    foreach($mesas as $m) {
+        $id=(int)$m['id'];$href=null;$detalle='';
+        if (isset($porMesa[$id])) {
+            $p=$porMesa[$id];$ocupadas++;
+            $clase='MESA_OCUPADA';$estado='Ocupada';
+            $detalle=h($p['cliente']).'<br>'.(int)$p['total'].' platos'.((int)$p['listos']>0?' · <b class="MESA_LISTOS">'.(int)$p['listos'].' listos</b>':'');
+            $href=url('pedido',['id'=>$p['id']]);
+        } elseif (isset($resMesa[$id])) {
+            $r=$resMesa[$id];$reservadas++;
+            $clase='MESA_RESERVADA';$estado='Reservada '.hora_corta($r['inicio']);
+            $detalle=h($r['cliente']);
+            if ($mesero) $href=url('realizar_pedidos',['mesa_id'=>$id,'reservacion_id'=>$r['id']]);
+        } else {
+            $clase='MESA_LIBRE';$estado='Libre';
+            if ($mesero) $href=url('realizar_pedidos',['mesa_id'=>$id]);
         }
-        $s.='</div>';
-
-        $s.='<h2>Historial de pedidos recientes en sala</h2>';
-        $where=puede('Administrador')?'TRUE':'p.mesero_id=$1';
-        $params=puede('Administrador')?[]:[$_SESSION['usuario_id']];
-        $rows=filas($conn,"SELECT p.*,u.nombre FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id WHERE $where ORDER BY p.id DESC LIMIT 100",$params);
-        $data=[];
-        foreach($rows as $p) $data[]=[enlace('#'.$p['id'],'pedido',['id'=>$p['id']]),h($p['mesa_id']??'Histórica sin mesa'),h($p['nombre']),h($p['creado']??'Fecha histórica desconocida'),h(estado_pedido($conn,$p['id'])),enlace('Ver Comanda / Precuenta','pedido',['id'=>$p['id']])];
-        return $s.tabla(['Pedido','Mesa','Cliente','Fecha','Estado','Acción'],$data).'<p>Se muestran hasta 100 pedidos recientes.</p>';
+        $tag=$href?'a':'div';
+        $tarjetas.='<'.$tag.' class="MESA '.$clase.'"'.($href?' href="'.h($href).'"':'').'>'
+            .'<span class="MESA_NUM"><small>Mesa</small>'.$id.'</span><span class="MESA_SILLAS">'.(int)$m['sillas'].' puestos</span>'
+            .'<span class="MESA_ESTADO">'.h($estado).'</span><span class="MESA_DETALLE">'.$detalle.'</span></'.$tag.'>';
     }
+    $meta=count($mesas).' mesas · '.$ocupadas.' ocupadas · '.$reservadas.' con reserva ahora';
+    $s=encabezado('Sala',h($meta));
+    $s.='<div class="PLANO_SALA">'.$tarjetas.'</div>';
+    if ($mesero) $s.='<p class="NOTA">Toque una mesa libre para abrir un pedido, o una ocupada para atenderla.</p>';
+
+    $where=puede('Administrador')?'TRUE':'p.mesero_id=$1';
+    $params=puede('Administrador')?[]:[$_SESSION['usuario_id']];
+    $rows=filas($conn,"SELECT p.*,u.nombre FROM pedidos p JOIN usuarios u ON u.id=p.cliente_id WHERE $where ORDER BY p.id DESC LIMIT 25",$params);
+    $data=[];
+    foreach($rows as $p) $data[]=[enlace('#'.$p['id'],'pedido',['id'=>$p['id']]),h($p['mesa_id']??'—'),h($p['nombre']),h(fecha_corta($p['creado'])),estado_pedido_html(estado_pedido($conn,$p['id']))];
+    return $s.seccion($mesero?'Mis últimos pedidos':'Últimos pedidos',tabla(['Pedido','Mesa','Cliente','Fecha','Estado'],$data,'Aún no hay pedidos.'));
+}
+function fn_tomar_pedido($conn)
+{
     exigir('Mesero');
     $mesa=entero($_GET['mesa_id'],'Mesa');
     if (!fila($conn,'SELECT id FROM mesas WHERE id=$1',[$mesa])) throw new DomainException('Mesa inexistente.');
@@ -209,8 +212,11 @@ function fn_realizar_pedidos($conn)
         foreach($reservas as $r) if ((string)$r['id']===(string)$_GET['reservacion_id']) $reserva=$r;
         if (!$reserva) throw new DomainException('Reserva no vigente para esta mesa.');
     }
-    foreach($reservas as $r) $s.=enlace('Usar reserva #'.$r['id'].' — '.$r['nombre'],'realizar_pedidos',['mesa_id'=>$mesa,'reservacion_id'=>$r['id']]);
-    return $s.'<h2>Tomar Comanda · Mesa '.$mesa.'</h2>'.formulario('pedido_guardar',oculto('mesa_id',$mesa).oculto('reservacion_id',$reserva['id']??'').selector_cliente($conn,$reserva['cliente_id']??null).formulario_items($conn),'Registrar comanda');
+    $meta=$reserva?'Reserva de '.h($reserva['nombre']).' · '.h(hora_corta($reserva['inicio'])):'Sin reserva';
+    $s=encabezado('Mesa '.$mesa.' · nuevo pedido',$meta,boton('Volver a la sala','realizar_pedidos',[],'BTN BTN_SEC'));
+    if (!$reserva) foreach($reservas as $r)
+        $s.='<div class="AVISO"><span>Esta mesa está reservada para <strong>'.h($r['nombre']).'</strong> a las '.h(hora_corta($r['inicio'])).'.</span>'.boton('Usar la reserva','realizar_pedidos',['mesa_id'=>$mesa,'reservacion_id'=>$r['id']],'BTN BTN_SEC BTN_SM').'</div>';
+    return $s.formulario('pedido_guardar',oculto('mesa_id',$mesa).oculto('reservacion_id',$reserva['id']??'').comanda($conn,selector_cliente($conn,$reserva['cliente_id']??null),'Enviar a cocina'),null);
 }
 function fn_pedido($conn)
 {
@@ -218,34 +224,27 @@ function fn_pedido($conn)
     $p=pedido_acceso($conn,$id);
     $u=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$p['cliente_id']]);
     $st=estado_pedido($conn,$id);
-    $stBadge='<span class="BADGE '.($st==='Entregado'?'BADGE_SUCCESS':($st==='Preparado'?'BADGE_INFO':'BADGE_WARNING')).'">'.h($st).'</span>';
-
-    $s='<div class="PEDIDO_HEADER_CARD">
-        <div class="PEDIDO_TITULO">
-            <h1>Pedido #'.$id.' '.$stBadge.'</h1>
-            <p>Mesa '.(int)($p['mesa_id']??0).' · Cliente: <strong>'.h($u['nombre']).'</strong></p>
-        </div>
-        <div class="PEDIDO_QUICK_ACTIONS">
-            '.enlace('🧾 Ver e Imprimir Precuenta','factura_pedido',['id'=>$id]).'
-        </div>
-    </div>';
+    $meta='Mesa '.h($p['mesa_id']??'—').' · '.h($u['nombre']).($p['creado']?' · '.h(fecha_corta($p['creado'])):'');
+    $s=encabezado('Pedido #'.$id.' '.estado_pedido_html($st),$meta,boton('Precuenta','factura_pedido',['id'=>$id],'BTN BTN_SEC'));
     $rows=filas($conn,'SELECT o.*,p.nombre,p.precio AS precio_actual FROM ordenes o JOIN platos p ON p.id=o.plato_id WHERE o.pedido_id=$1 ORDER BY o.id',[$id]);
-    $estados=[1=>'En espera de cocina',2=>'En preparación al fuego',3=>'Entregado a la mesa',4=>'Preparado (Listo para servir)'];
-    $data=[];$total=0;$estimado=0;
+    $data=[];$total=0;$estimado=0;$listos=0;
     foreach($rows as $r) {
         $historico=$r['precio_unitario']===null;
         $valor=($historico?$r['precio_actual']:$r['precio_unitario'])*$r['cantidad'];
         if ($historico) $estimado+=$valor; else $total+=$valor;
         $accion='';
-        if ($r['estado']==4) $accion=formulario('entregar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'🔔 Entregar a mesa');
-        elseif ($r['estado']==1) $accion=formulario('orden_cancelar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'✕ Cancelar ítem');
-        $badgeClass=($r['estado']==3?'BADGE_SUCCESS':($r['estado']==4?'BADGE_INFO':'BADGE_WARNING'));
-        $data[]=[h($r['nombre']),h($r['cantidad']),'<span class="BADGE '.$badgeClass.'">'.h($estados[$r['estado']]).'</span>',h(dinero($valor)).($historico?' (estimado)':''),$accion];
+        if ($r['estado']==4) { $listos++; $accion=formulario('entregar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Servir','BTN BTN_SM'); }
+        elseif ($r['estado']==1) $accion=formulario('orden_cancelar',oculto('pedido_id',$id).oculto('orden_id',$r['id']),'Quitar','BTN_LINK BTN_PELIGRO');
+        $data[]=[h($r['nombre']),num((int)$r['cantidad']),estado_orden_html($r['estado']),num(h(dinero($valor)).($historico?'*':'')),$accion];
     }
-    $s.=tabla(['Plato','Cantidad','Estado','Subtotal','Acción'],$data).'<p>Total con precio registrado: <strong>'.h(dinero($total)).'</strong>.'.($estimado>0?' Estimación histórica: '.h(dinero($estimado)).'.':'').'</p>';
-    if (estado_pedido($conn,$id)!=='Entregado') {
-        $s.='<details class="CARD_FORM"><summary>Mover pedido a otra mesa</summary>'.formulario('pedido_reasignar_mesa',oculto('pedido_id',$id).campo('nueva_mesa_id','Nueva mesa destino',$p['mesa_id']??'','number','min="1" required'),'Reasignar mesa').'</details>';
-        $s.='<h2>Agregar más platos a esta comanda</h2>'.formulario('pedido_agregar',oculto('pedido_id',$id).formulario_items($conn),'Agregar al pedido');
+    if ($listos) $s.='<div class="AVISO AVISO_OK">'.$listos.' '.($listos===1?'plato listo':'platos listos').' para servir.</div>';
+    $s.=tabla(['Plato','Cant.','Estado','Subtotal',''],$data,'Este pedido no tiene platos.');
+    $s.='<div class="TOTAL_LINEA"><span>Total</span><strong>'.h(dinero($total+$estimado)).'</strong></div>';
+    if ($estimado>0) $s.='<p class="NOTA">* Registro histórico sin precio original; se usa el precio actual.</p>';
+    if ($st!=='Entregado') {
+        $s.=plegable('Agregar platos',formulario('pedido_agregar',oculto('pedido_id',$id).comanda($conn,'','Agregar al pedido'),null),!$rows);
+        $mesas=filas($conn,"SELECT id,'Mesa '||id||' · '||sillas||' puestos' AS nombre FROM mesas WHERE id IS DISTINCT FROM $1 ORDER BY id",[$p['mesa_id']]);
+        $s.=plegable('Cambiar de mesa',formulario('pedido_reasignar_mesa',oculto('pedido_id',$id).'<label>Mesa destino <select name="nueva_mesa_id" required>'.opciones($mesas,'id','nombre').'</select></label>','Mover pedido','BTN BTN_SEC'));
     }
     return $s;
 }
@@ -256,42 +255,21 @@ function fn_factura_pedido($conn)
     $cliente=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$p['cliente_id']]);
     $mesero=fila($conn,'SELECT nombre FROM usuarios WHERE id=$1',[$p['mesero_id']]);
     $items=filas($conn,'SELECT o.*,pl.nombre,pl.precio AS precio_vigente FROM ordenes o JOIN platos pl ON pl.id=o.plato_id WHERE o.pedido_id=$1 ORDER BY o.id',[$id]);
-
-    $subtotal=0;
-    $filasTabla=[];
+    $subtotal=0;$lineas='';
     foreach($items as $it) {
         $precio=$it['precio_unitario']!==null?(float)$it['precio_unitario']:(float)$it['precio_vigente'];
         $valor=$precio*(int)$it['cantidad'];
         $subtotal+=$valor;
-        $filasTabla[]=[
-            h($it['cantidad']),
-            h($it['nombre']),
-            h(dinero($precio)),
-            h(dinero($valor))
-        ];
+        $lineas.='<tr><td>'.(int)$it['cantidad'].'</td><td>'.h($it['nombre']).'</td><td class="NUM">'.h(dinero($valor)).'</td></tr>';
     }
-    $propina=$subtotal*0.10;
-    $totalConServicio=$subtotal+$propina;
-
-    $s='<div class="FACTURA_CONTAINER">';
-    $s.='<p>'.enlace('← Volver al Pedido #'.$id,'pedido',['id'=>$id]).'</p>';
-    $s.='<div class="FACTURA_TICKET">';
-    $s.='<div class="FACTURA_HEADER"><h2>RESTAURANTE URBANO</h2><p>FINE DINING & COCKTAIL BAR</p><p>Nit: 900.824.112-5 · Régimen Común</p></div>';
-    $s.='<div class="FACTURA_INFO">';
-    $s.='<p><strong>Precuenta / Factura:</strong> #'.$id.'</p>';
-    $s.='<p><strong>Mesa:</strong> '.h($p['mesa_id']??'Sin mesa').' | <strong>Fecha:</strong> '.h($p['creado']??date('Y-m-d H:i')).'</p>';
-    $s.='<p><strong>Cliente:</strong> '.h($cliente['nombre']??'Cliente General').'</p>';
-    $s.='<p><strong>Mesero:</strong> '.h($mesero['nombre']??'Personal de Sala').'</p>';
-    $s.='</div>';
-    $s.=tabla(['Cant.','Descripción','Unitario','Subtotal'],$filasTabla);
-    $s.='<div class="FACTURA_TOTALES">';
-    $s.='<p><span>Subtotal Neto:</span> <strong>'.h(dinero($subtotal)).'</strong></p>';
-    $s.='<p><span>Servicio Sugerido (10% voluntario):</span> <strong>'.h(dinero($propina)).'</strong></p>';
-    $s.='<p class="FACTURA_GRAN_TOTAL"><span>TOTAL A PAGAR:</span> <strong>'.h(dinero($totalConServicio)).'</strong></p>';
-    $s.='</div>';
-    $s.='<div class="FACTURA_FOOTER"><p>¡Gracias por su visita!</p><p>Documento informativo de consumo.</p></div>';
-    $s.='<p><button type="button" onclick="window.print()">🖨️ Imprimir Precuenta</button></p>';
-    $s.='</div></div>';
+    $servicio=$subtotal*0.10;
+    $s=encabezado('Precuenta · pedido #'.$id,'',boton('Volver al pedido','pedido',['id'=>$id],'BTN BTN_SEC').'<button type="button" class="BTN" onclick="window.print()">Imprimir</button>');
+    $s.='<div class="TICKET">';
+    $s.='<div class="TICKET_HEAD"><strong>URBANO</strong><span>Fine dining · Bogotá</span><span>NIT 900.824.112-5</span></div>';
+    $s.='<dl class="TICKET_INFO"><dt>Mesa</dt><dd>'.h($p['mesa_id']??'—').'</dd><dt>Fecha</dt><dd>'.h(fecha_corta($p['creado']??date('Y-m-d H:i'))).'</dd><dt>Cliente</dt><dd>'.h($cliente['nombre']??'—').'</dd><dt>Mesero</dt><dd>'.h($mesero['nombre']??'—').'</dd></dl>';
+    $s.='<table class="TICKET_ITEMS"><tbody>'.$lineas.'</tbody></table>';
+    $s.='<dl class="TICKET_TOTALES"><dt>Subtotal</dt><dd>'.h(dinero($subtotal)).'</dd><dt>Servicio sugerido (10 %, voluntario)</dt><dd>'.h(dinero($servicio)).'</dd><dt class="TICKET_TOTAL">Total</dt><dd class="TICKET_TOTAL">'.h(dinero($subtotal+$servicio)).'</dd></dl>';
+    $s.='<p class="TICKET_PIE">Gracias por su visita. Documento informativo, no es factura electrónica.</p></div>';
     return $s;
 }
 function accion_cocina($conn)
@@ -316,68 +294,24 @@ function accion_cocina($conn)
     } else throw new DomainException('Transición inválida.');
     return url('cocina');
 }
+function tarjeta_cocina($r,$paso,$etiqueta)
+{
+    return '<div class="TICKET_COCINA"><div class="TC_META"><strong>Mesa '.h($r['mesa_id']??'—').'</strong><span>#'.(int)$r['pedido_id'].' · '.h(hora_corta($r['solicitado'])).'</span></div>'
+        .'<div class="TC_PLATO"><span class="TC_CANT">'.(int)$r['cantidad'].'×</span> '.h($r['nombre']).'</div>'
+        .'<div class="TC_PIE"><span>'.(int)ceil((float)$r['minutos']).' min</span>'.formulario('cocina',oculto('orden_id',$r['id']).oculto('paso',$paso),$etiqueta,'BTN BTN_SM').'</div></div>';
+}
 function fn_cocina($conn)
 {
     exigir('Cocinero');
-    $rows=filas($conn,'SELECT o.*,p.nombre,p.tiempo,pe.mesa_id,pr.cocinero_id FROM ordenes o JOIN platos p ON p.id=o.plato_id JOIN pedidos pe ON pe.id=o.pedido_id JOIN especialidades e ON e.plato_id=o.plato_id AND e.cocinero_id=$1 LEFT JOIN preparaciones pr ON pr.orden_id=o.id WHERE o.estado=1 OR (o.estado=2 AND pr.cocinero_id=$1) ORDER BY p.tiempo DESC,o.solicitado,o.id',[$_SESSION['usuario_id']]);
-    
-    $porTomar=[];
-    $enPrep=[];
+    $rows=filas($conn,'SELECT o.*,p.nombre,extract(epoch FROM p.tiempo)/60 AS minutos,pe.mesa_id,pr.cocinero_id FROM ordenes o JOIN platos p ON p.id=o.plato_id JOIN pedidos pe ON pe.id=o.pedido_id JOIN especialidades e ON e.plato_id=o.plato_id AND e.cocinero_id=$1 LEFT JOIN preparaciones pr ON pr.orden_id=o.id WHERE o.estado=1 OR (o.estado=2 AND pr.cocinero_id=$1) ORDER BY p.tiempo DESC,o.solicitado,o.id',[$_SESSION['usuario_id']]);
+    $cola='';$prep='';$nc=0;$np=0;
     foreach($rows as $r) {
-        if ($r['estado']==1) $porTomar[]=$r;
-        elseif ($r['estado']==2) $enPrep[]=$r;
+        if ($r['estado']==1) { $nc++; $cola.=tarjeta_cocina($r,'tomar','Tomar'); }
+        else { $np++; $prep.=tarjeta_cocina($r,'preparar','Listo'); }
     }
-
-    $s='<h1>Cocina · Kitchen Display System (KDS)</h1>';
-    $s.='<p class="KDS_SUBTITLE">Gestión visual de comandas en tiempo real según sus especialidades culinarias autorizadas</p>';
-
-    $s.='<div class="KDS_COLUMNAS">';
-
-    // Columna 1: Comandas en cola
-    $s.='<div class="KDS_COLUMNA KDS_COLA">';
-    $s.='<h2>🔔 Comandas en Cola ('.count($porTomar).')</h2>';
-    if (!$porTomar) {
-        $s.='<div class="KDS_EMPTY">✨ No hay platos pendientes por tomar en este momento.</div>';
-    } else {
-        $s.='<div class="KDS_CARDS">';
-        foreach($porTomar as $r) {
-            $s.='<div class="KDS_CARD CARD_COLA">
-                <div class="KDS_CARD_HEADER">
-                    <span class="KDS_MESA">Mesa '.(int)$r['mesa_id'].'</span>
-                    <span class="KDS_PEDIDO">Pedido #'.(int)$r['pedido_id'].'</span>
-                </div>
-                <div class="KDS_PLATO_NAME">'.(int)$r['cantidad'].'x '.h($r['nombre']).'</div>
-                <div class="KDS_TIEMPO">⏱️ '.(int)$r['tiempo'].' min · Solicitado: '.date('H:i',strtotime($r['solicitado'])).'</div>
-                <div class="KDS_ACTION">'.formulario('cocina',oculto('orden_id',$r['id']).oculto('paso','tomar'),'👨‍🍳 Tomar Comanda').'</div>
-            </div>';
-        }
-        $s.='</div>';
-    }
-    $s.='</div>';
-
-    // Columna 2: Mis platos en preparación
-    $s.='<div class="KDS_COLUMNA KDS_PREP">';
-    $s.='<h2>🔥 En mi Preparación / Al Fuego ('.count($enPrep).')</h2>';
-    if (!$enPrep) {
-        $s.='<div class="KDS_EMPTY">☕ No tienes platos en preparación activa en este momento.</div>';
-    } else {
-        $s.='<div class="KDS_CARDS">';
-        foreach($enPrep as $r) {
-            $s.='<div class="KDS_CARD CARD_PREP">
-                <div class="KDS_CARD_HEADER">
-                    <span class="KDS_MESA">Mesa '.(int)$r['mesa_id'].'</span>
-                    <span class="KDS_PEDIDO">Pedido #'.(int)$r['pedido_id'].'</span>
-                </div>
-                <div class="KDS_PLATO_NAME">'.(int)$r['cantidad'].'x '.h($r['nombre']).'</div>
-                <div class="KDS_TIEMPO">⏱️ '.(int)$r['tiempo'].' min · Cocinando desde: '.date('H:i',strtotime($r['solicitado'])).'</div>
-                <div class="KDS_ACTION">'.formulario('cocina',oculto('orden_id',$r['id']).oculto('paso','preparar'),'✅ Marcar Listo para Servir').'</div>
-            </div>';
-        }
-        $s.='</div>';
-    }
-    $s.='</div>';
-
-    $s.='</div>';
-    return $s;
+    $s=encabezado('Cocina',$nc.' en cola · '.$np.' preparando · los platos más largos primero');
+    $s.='<div class="COCINA">';
+    $s.='<section class="COCINA_COL"><h2>En cola <span>'.$nc.'</span></h2>'.($cola?:'<p class="VACIO">Nada en cola.</p>').'</section>';
+    $s.='<section class="COCINA_COL"><h2>Preparando <span>'.$np.'</span></h2>'.($prep?:'<p class="VACIO">No está preparando nada.</p>').'</section>';
+    return $s.'</div>';
 }
-
