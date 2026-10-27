@@ -34,5 +34,5 @@ function fn_login($conn)
             $demo.='<button type="button" class="BTN_DEMO" data-id="'.$id.'" data-pass="Restaurante#42">'.h($rol).'</button>';
         $demo.='</div></div>';
     }
-    return '<div class="LOGIN"><h1>Ingreso del personal</h1><p class="PAGE_META">Use su ID de empleado y contraseña.</p>'.$form.$demo.'</div>';
+    return '<div class="LOGIN"><h1>Iniciar sesión</h1><p class="PAGE_META">Ingreso del personal · Use su ID de empleado y contraseña.</p>'.$form.$demo.'</div>';
 }
