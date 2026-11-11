@@ -1,0 +1,809 @@
+\documentclass[11pt,letterpaper]{article}
+
+% =============================================================================
+% CONFIGURACIÓN DE PAQUETES Y TIPOGRAFÍA
+% =============================================================================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.3cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs,tabularx,longtable,array,multirow}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{microtype}
+\usepackage[hidelinks,pdftex,bookmarks=true,bookmarksnumbered=true]{hyperref}
+
+% =============================================================================
+% PALETA DE COLORES INSTITUCIONAL
+% =============================================================================
+\definecolor{pujblue}{RGB}{0, 43, 91}       % Azul Javeriana
+\definecolor{pujgold}{RGB}{181, 133, 0}     % Dorado Javeriana
+\definecolor{accentdark}{RGB}{20, 30, 45}
+\definecolor{codebg}{RGB}{248, 249, 250}
+\definecolor{codeframe}{RGB}{220, 224, 230}
+\definecolor{sqlkeyword}{RGB}{0, 70, 160}
+\definecolor{sqlstring}{RGB}{160, 40, 40}
+\definecolor{sqlcomment}{RGB}{100, 110, 120}
+
+% =============================================================================
+% ESTILO DE CÓDIGO (LISTINGS)
+% =============================================================================
+\lstdefinestyle{sqlstyle}{
+    language=SQL,
+    backgroundcolor=\color{codebg},
+    basicstyle=\ttfamily\footnotesize,
+    keywordstyle=\color{sqlkeyword}\bfseries,
+    stringstyle=\color{sqlstring},
+    commentstyle=\color{sqlcomment}\itshape,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    frame=single,
+    rulecolor=\color{codeframe},
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    numbersep=7pt,
+    tabsize=2,
+    morekeywords={
+        SERIAL, BYTEA, INTERVAL, TIMESTAMPTZ, tsrange, GREATEST, date_trunc,
+        FILTER, DO, PERFORM, STRICT, FOR, EACH, ROW, EXECUTE, FUNCTION,
+        PARTITION, OF, ATTACH, TABLESAPCE, TABLESPACE
+    }
+}
+\lstset{style=sqlstyle}
+
+% =============================================================================
+% ENCABEZADOS Y PIES DE PÁGINA
+% =============================================================================
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.6pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{\small\scshape\color{pujblue}Pontificia Universidad Javeriana}
+\fancyhead[R]{\small\color{gray}Proyecto Restaurante | BD 2026-3}
+\fancyfoot[L]{\footnotesize\color{gray}Ingeniería de Sistemas - Bases de Datos}
+\fancyfoot[R]{\thepage}
+
+% Títulos de secciones estilizados
+\titleformat{\section}{\color{pujblue}\normalfont\Large\bfseries}{\thesection.}{0.8em}{}[\titlerule]
+\titleformat{\subsection}{\color{accentdark}\normalfont\large\bfseries}{\thesubsection.}{0.6em}{}
+\titleformat{\subsubsection}{\color{pujgold!80!black}\normalfont\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+
+% =============================================================================
+% DOCUMENTO PRINCIPAL
+% =============================================================================
+\begin{document}
+
+% -----------------------------------------------------------------------------
+% PORTADA INSTITUCIONAL
+% -----------------------------------------------------------------------------
+\begin{titlepage}
+    \centering
+    \vspace*{0.5cm}
+    
+    {\scshape\LARGE Pontificia Universidad Javeriana \par}
+    \vspace{0.4cm}
+    {\scshape\large Facultad de Ingeniería \par}
+    {\scshape\large Departamento de Ingeniería de Sistemas \par}
+    \vspace{0.3cm}
+    {\large Bases de Datos: Administración y Aplicaciones (Período 2026-3) \par}
+    
+    \vspace{1.8cm}
+    \rule{\linewidth}{1.5pt} \\[0.4cm]
+    {\huge\bfseries\color{pujblue} PROYECTO RESTAURANTE \\[0.25cm] \large Diseño Relacional, Almacenamiento Físico, Integridad Avanzada y Consultas Analíticas en PostgreSQL 18 \par}
+    \rule{\linewidth}{1.5pt} \\[1.8cm]
+    
+    \begin{minipage}[t]{0.48\textwidth}
+        \textbf{Presentado por:} \\[0.2cm]
+        Estudiante(s): \\
+        \textit{García \& Pico} \\
+        Ingeniería de Sistemas
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.48\textwidth}
+        \raggedleft
+        \textbf{Docente Titular:} \\[0.2cm]
+        \textbf{Ing. Ricardo Naranjo Faccini, MSc.} \\
+        Profesor Asistente \\
+        Departamento de Ingeniería de Sistemas
+    \end{minipage}
+    
+    \vfill
+    {\large Bogotá D.C., Colombia \\ Noviembre de 2026 \par}
+\end{titlepage}
+
+% -----------------------------------------------------------------------------
+% SUMARIO Y TABLA DE CONTENIDO
+% -----------------------------------------------------------------------------
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+\section*{Resumen Ejecutivo}
+El presente documento contiene el informe técnico y formal de entrega correspondiente al \textbf{Proyecto Restaurante} para la asignatura de \textit{Bases de Datos: Administración y Aplicaciones} de la Pontificia Universidad Javeriana. 
+
+El objetivo primordial consiste en diseñar, implementar y documentar una base de datos relacional robusta en \textbf{PostgreSQL 18} para soportar la operación integral de un restaurante de alta demanda. El sistema gestiona mesas, reservaciones, menús, pedidos y entregas, garantizando reglas de negocio críticas: control estricto del cupo total de mesas, prevención matemática de cruces de reservaciones en ventanas mínimas de dos horas, despacho de platos hacia cocineros autorizados según especialidades capacitadas, y trazabilidad completa del ciclo de vida de los pedidos para los meseros y maitres.
+
+Asimismo, se expone la arquitectura física basada en \textbf{tablespaces} en directorios independientes de almacenamiento, particionamiento de tablas por rangos y fechas, disparadores (\textit{triggers}) de integridad referencial activa, y el catálogo exhaustivo de consultas SQL optimizadas para resolver los casos de uso operativos y reportes analíticos de gestión.
+
+\vspace{0.8cm}
+\tableofcontents
+\newpage
+\listoftables
+\newpage
+
+% -----------------------------------------------------------------------------
+% CUERPO DEL INFORME TÉCNICO
+% -----------------------------------------------------------------------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\section{Descripción General y Roles de Usuario}
+
+\subsection{Contexto y Objetivos del Sistema}
+El proyecto aborda la problemática operacional de establecimientos gastronómicos en donde confluyen simultáneamente múltiples perfiles de usuarios y flujos transaccionales altamente concurrentes. El modelo debe garantizar:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Aforo y Asignación de Mesas:} No exceder en ningún momento el cupo máximo de comensales del local ni solapar reservas sobre un mismo recurso físico.
+    \item \textbf{Gestión de Horarios y Reservaciones:} Todo turno de reserva estima una ocupación predeterminada de dos (2) horas, calculando la disponibilidad a través de álgebra de intervalos (\texttt{tsrange}).
+    \item \textbf{Especialización en Cocina:} Cada cocinero solo puede visualizar, tomar y marcar como preparados aquellos platos para los cuales ha sido formalmente acreditado mediante una especialidad.
+    \item \textbf{Gestión Operativa de Pedidos:} Los meseros registran órdenes asociadas a mesas y clientes, gestionando la transición de estados (\textit{Solicitada $\rightarrow$ En preparación $\rightarrow$ Preparada $\rightarrow$ Entregada}).
+    \item \textbf{Inteligencia de Negocio:} Generación dinámica de reportes consolidados por día, semana y mes para ventas, afluencia de reservas y platos de mayor demanda.
+\end{itemize}
+
+\subsection{Matriz de Roles y Responsabilidades}
+\begin{table}[h!]
+\centering
+\small
+\begin{tabularx}{\textwidth}{l p{4.2cm} X}
+\toprule
+\textbf{Rol} & \textbf{Alcance Operativo} & \textbf{Acciones Principales en Base de Datos} \\
+\midrule
+\textbf{Administrador} & Control maestro de infraestructura, personal y finanzas & Mantenimiento de mesas (CRUD), actualización de carta/precios, asignación de roles y especialidades a empleados, y consulta de reportes analíticos. \\
+\addlinespace
+\textbf{Maitre} & Control de sala, aforo y relaciones de acceso & Registro, consulta y cancelación de reservaciones; verificación de cupo total en tiempo real; atención de alertas tempranas ($\le 2$ horas). \\
+\addlinespace
+\textbf{Mesero} & Toma de comandas y servicio a mesa & Creación de pedidos con múltiples ítems, consulta de comandas listas en cocina y registro de entrega efectiva en mesa. \\
+\addlinespace
+\textbf{Cocinero} & Elaboración culinaria en cocina & Visualización de cola de comandas autorizadas priorizadas por tiempo descendente de cocción, toma de órdenes y notificación de plato listo. \\
+\addlinespace
+\textbf{Cliente} & Comensal (interacción indirecta) & Titular de reservaciones y pedidos; consulta de historial de consumos y visitas. \\
+\bottomrule
+\end{tabularx}
+\caption{Matriz de roles y permisos del sistema del restaurante.}
+\label{tab:roles}
+\end{table}
+
+\newpage
+\section{Casos de Uso del Sistema}
+
+A continuación se detallan los siete casos de uso troncales y las funcionalidades transversales estipuladas en la especificación oficial:
+
+\begin{enumerate}[label=\textbf{CU-\arabic*:},leftmargin=*]
+    \item \textbf{Gestión de Mesas (Administrador):} Creación, actualización y retiro de mesas físicas, asignando su número único y número de asientos disponibles. Cálculo automático del aforo o cupo total mediante $\sum \text{sillas}$.
+    \item \textbf{Gestión de Reservaciones (Maitre):} Asignación de mesa y horario a clientes. Se exige validar que la mesa seleccionada soporte el número de comensales, que no existan traslapes temporales con otras reservas en dicha mesa (considerando duración estándar de 2 horas), y que la suma de asistentes concurrentes no sobrepase el cupo del restaurante.
+    \item \textbf{Gestión del Menú (Administrador):} Catálogo de ítems clasificados en cuatro categorías obligatorias (\textit{Entrada, Plato Fuerte, Postre, Bebida}). Cada plato registra nombre, descripción textual, precio unitario vigente y tiempo estimado de preparación (\texttt{INTERVAL}). Registro de especialidades por cocinero.
+    \item \textbf{Registro de Pedidos (Mesero):} Creación de pedidos cabecera vinculados a una mesa y un cliente. Inclusión de una o múltiples líneas de orden (\texttt{ordenes}) capturando el precio unitario vigente en ese instante. Estado inicial automático en \textit{Solicitado/En preparación}.
+    \item \textbf{Preparación de Platos (Cocinero):} Vista en cocina donde cada cocinero accede únicamente a las órdenes de platos que está capacitado para elaborar. Las órdenes se ordenan de forma descendente por tiempo de cocción (\textit{los platos más demorados de primero}) y secundariamente por antigüedad de solicitud. Al culminar, actualiza el estado a \textit{Preparado}.
+    \item \textbf{Gestión de Entregas (Mesero):} Monitoreo de ítems con estado \textit{Preparado} listos para servir. El mesero efectúa la entrega material a la mesa y actualiza el estado del ítem a \textit{Entregado}.
+    \item \textbf{Reportes y Estadísticas (Administrador):} Consultas analíticas agrupadas dinámicamente por día, semana o mes (\texttt{date\_trunc}) que consolidan:
+    \begin{itemize}
+        \item Volumen y estados de reservaciones.
+        \item Ranking de los platos más solicitados (unidades e ingresos).
+        \item Facturación global y ventas verificadas por fecha de entrega.
+    \end{itemize}
+\end{enumerate}
+
+\paragraph{Funcionalidades Adicionales Implementadas:}
+\begin{itemize}
+    \item \textbf{Sistema de Alertas y Notificaciones:} Alertas automáticas para el Maitre ante reservas que inician en $\le 2$ horas, y para el Mesero ante órdenes listas para entrega.
+    \item \textbf{Historial Completo de Clientes:} Métrica consolidada por cliente con visitas históricas, pedidos consumidos y valor monetario acumulado.
+    \item \textbf{Gestión Integral de Personal:} Control de altas, bajas lógicas (\texttt{activo}) y modificación de roles múltiples mediante la entidad asociativa \texttt{actuaciones}.
+\end{itemize}
+
+\newpage
+\section{Diseño de la Base de Datos y Modelo Entidad-Relación}
+
+\subsection{Modelo Entidad-Relación Obligatorio}
+El sistema implementa de manera estricta el esquema relacional de 12 entidades especificado por la cátedra. La Figura~\ref{fig:diagrama_er} ilustra la topología relacional y las dependencias foráneas.
+
+\begin{figure}[h!]
+\centering
+\begin{tikzpicture}[
+    scale=0.85, every node/.style={transform shape},
+    entity/.style={rectangle, draw=pujblue, fill=blue!5, thick, rounded corners=2pt, minimum width=3.2cm, inner sep=6pt},
+    rel/.style={-{Latex[length=2.5mm]}, thick, pujblue!80!black},
+    textlabel/.style={font=\scriptsize\ttfamily}
+]
+    % Filas del diagrama
+    % Nivel 1: Menú y Tipos
+    \node[entity] (tipos) at (0, 8) {
+        \textbf{Tipos} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize nombre: TEXT
+    };
+    
+    \node[entity] (platos) at (5, 8) {
+        \textbf{Platos} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize tipo\_id: INT (FK) \\
+        \scriptsize nombre: TEXT \\
+        \scriptsize tiempo: INTERVAL \\
+        \scriptsize precio: NUMERIC
+    };
+    
+    \node[entity] (ordenes) at (11, 8) {
+        \textbf{Ordenes} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize plato\_id: INT (FK) \\
+        \scriptsize pedido\_id: INT (FK) \\
+        \scriptsize estado: INT \\
+        \scriptsize cantidad: INT \\
+        \scriptsize solicitado: TIMESTAMPTZ
+    };
+
+    % Nivel 2: Especialidades y Preparaciones
+    \node[entity] (esp) at (2.5, 4.5) {
+        \textbf{Especialidades} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize cocinero\_id: INT (FK) \\
+        \scriptsize plato\_id: INT (FK)
+    };
+    
+    \node[entity] (prep) at (7.5, 4.5) {
+        \textbf{Preparaciones} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize cocinero\_id: INT (FK) \\
+        \scriptsize orden\_id: INT (FK)
+    };
+    
+    \node[entity] (pedidos) at (11, 4.5) {
+        \textbf{Pedidos} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize cliente\_id: INT (FK) \\
+        \scriptsize mesero\_id: INT (FK)
+    };
+
+    % Nivel 3: Usuarios, Roles, Actuaciones
+    \node[entity] (act) at (11, 1) {
+        \textbf{Actuaciones} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize rol\_id: INT (FK) \\
+        \scriptsize usuario\_id: INT (FK)
+    };
+
+    \node[entity] (roles) at (11, -2) {
+        \textbf{Roles} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize nombre: TEXT
+    };
+
+    \node[entity] (usuarios) at (5.5, 1) {
+        \textbf{Usuarios} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize nombre: TEXT \\
+        \scriptsize clave: BYTEA \\
+        \scriptsize fecha\_clave: TIMESTAMP
+    };
+
+    % Nivel 4: Reservaciones, Horarios, Mesas
+    \node[entity] (res) at (0.5, 1) {
+        \textbf{Reservaciones} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize cliente\_id: INT (FK) \\
+        \scriptsize cantidad: INT \\
+        \scriptsize estado: INT
+    };
+
+    \node[entity] (horarios) at (3.5, -2) {
+        \textbf{Horarios} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize mesa\_id: INT (FK) \\
+        \scriptsize reservacion\_id: INT (FK) \\
+        \scriptsize inicio: TIMESTAMP \\
+        \scriptsize duracion: INTERVAL
+    };
+
+    \node[entity] (mesas) at (8, -2) {
+        \textbf{Mesas} \\ \hline
+        \scriptsize \underline{id}: SERIAL \\
+        \scriptsize sillas: INT
+    };
+
+    % Conexiones relacionales
+    \draw[rel] (tipos) -- (platos) node[midway,above,textlabel]{1:N};
+    \draw[rel] (platos) -- (ordenes) node[midway,above,textlabel]{1:N};
+    \draw[rel] (platos) -- (esp) node[midway,right,textlabel]{1:N};
+    \draw[rel] (ordenes) -- (prep) node[midway,above,textlabel]{1:N};
+    \draw[rel] (pedidos) -- (ordenes) node[midway,right,textlabel]{1:N};
+    
+    \draw[rel] (usuarios) -- (esp) node[midway,left,textlabel]{1:N};
+    \draw[rel] (usuarios) -- (prep) node[midway,right,textlabel]{1:N};
+    \draw[rel] (usuarios) -- (pedidos) node[midway,above,textlabel]{1:N};
+    \draw[rel] (usuarios) -- (res) node[midway,above,textlabel]{1:N};
+    \draw[rel] (usuarios) -- (act) node[midway,above,textlabel]{1:N};
+    
+    \draw[rel] (roles) -- (act) node[midway,right,textlabel]{1:N};
+    \draw[rel] (res) -- (horarios) node[midway,left,textlabel]{1:N};
+    \draw[rel] (mesas) -- (horarios) node[midway,above,textlabel]{1:N};
+
+\end{tikzpicture}
+\caption{Diagrama Entidad-Relación formal obligatorio del sistema del restaurante.}
+\label{fig:diagrama_er}
+\end{figure}
+
+\subsection{Normalización del Esquema}
+El diseño satisface la \textbf{Tercera Forma Normal (3FN)} y la \textbf{Forma Normal de Boyce-Codd (FNBC)}:
+\begin{enumerate}
+    \item \textbf{1FN:} Todos los atributos son atómicos y no existen grupos repetitivos. Los roles múltiples de los usuarios se resuelven a través de la tabla asociativa \texttt{actuaciones}.
+    \item \textbf{2FN:} Toda columna que no forma parte de una clave candidata depende por completo de la clave primaria completa (claves subrogadas simples mediante secuencias \texttt{SERIAL}).
+    \item \textbf{3FN:} No existen dependencias transitivas entre atributos no clave. Por ejemplo, el precio y categoría no se embeben en la orden, sino que se normalizan en \texttt{platos} y \texttt{tipos}, guardando en la orden únicamente el snapshot transaccional (\texttt{precio\_unitario}).
+\end{enumerate}
+
+\newpage
+\section{Diccionario de Datos Exhaustivo}
+
+A continuación se documenta la estructura de campos, tipos nativos de PostgreSQL 18, claves y restricciones de integridad para las 12 entidades del sistema:
+
+% 1. Usuarios, Roles y Actuaciones
+\subsection{Módulo de Usuarios, Seguridad y Roles}
+
+\begin{table}[h!]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{l l l p{2.5cm} X}
+\toprule
+\textbf{Columna} & \textbf{Tipo Dato} & \textbf{Nulo} & \textbf{Claves / Constraints} & \textbf{Descripción Funcional} \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.usuarios} (Usuarios del sistema: clientes, cocineros, meseros, maitres, admin)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador único subrogado del usuario. \\
+\texttt{nombre} & \texttt{TEXT} & No & -- & Nombre completo del usuario o razón social. \\
+\texttt{clave} & \texttt{BYTEA} & No & -- & Hash criptográfico de autenticación (SHA-256). \\
+\texttt{fecha\_clave} & \texttt{TIMESTAMP} & No & \texttt{DEFAULT now()} & Marca temporal del último cambio de contraseña. \\
+\texttt{activo} & \texttt{BOOLEAN} & No & \texttt{DEFAULT true} & Estado de habilitación operativa para login. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.roles} (Catálogo de roles del restaurante)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador único del rol. \\
+\texttt{nombre} & \texttt{TEXT} & No & \texttt{UNIQUE} & Nombre del rol: Administrador, Maitre, Mesero, Cocinero, Cliente. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.actuaciones} (Asociación N:M entre usuarios y roles)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador de asignación de rol. \\
+\texttt{rol\_id} & \texttt{INTEGER} & No & \texttt{FK -> roles(id)} & Rol concedido al usuario. \\
+\texttt{usuario\_id} & \texttt{INTEGER} & No & \texttt{FK -> usuarios(id)} & Usuario al cual se le otorga el rol. \\
+\bottomrule
+\end{tabularx}
+\caption{Diccionario de datos: Usuarios, Roles y Actuaciones.}
+\label{tab:dict_usuarios}
+\end{table}
+
+\subsection{Módulo de Menú y Especialidades}
+
+\begin{table}[h!]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{l l l p{2.8cm} X}
+\toprule
+\textbf{Columna} & \textbf{Tipo Dato} & \textbf{Nulo} & \textbf{Claves / Constraints} & \textbf{Descripción Funcional} \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.tipos} (Categorías del menú)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador de categoría. \\
+\texttt{nombre} & \texttt{TEXT} & No & \texttt{UNIQUE} & Entrada, Plato Fuerte, Postre o Bebida. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.platos} (Catálogo de platos y bebidas ofrecidos)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador del plato. \\
+\texttt{tipo\_id} & \texttt{INTEGER} & No & \texttt{FK -> tipos(id)} & Categoría a la que pertenece el ítem. \\
+\texttt{nombre} & \texttt{TEXT} & No & -- & Nombre comercial del plato o bebida. \\
+\texttt{descripcion} & \texttt{TEXT} & Sí & -- & Reseña de ingredientes y presentación. \\
+\texttt{tiempo} & \texttt{INTERVAL} & No & \texttt{CHECK (> '0')} & Duración promedio estimada de cocción/preparación. \\
+\texttt{precio} & \texttt{NUMERIC} & No & \texttt{CHECK (precio >= 0)} & Precio de venta en moneda local (COP). \\
+\texttt{activo} & \texttt{BOOLEAN} & No & \texttt{DEFAULT true} & Habilitado en la carta para nuevos pedidos. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.especialidades} (Autorización de platos para cada cocinero)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador de acreditación. \\
+\texttt{cocinero\_id} & \texttt{INTEGER} & No & \texttt{FK -> usuarios(id)} & Usuario con rol Cocinero autorizado. \\
+\texttt{plato\_id} & \texttt{INTEGER} & No & \texttt{FK -> platos(id)} & Plato que el cocinero sabe elaborar. \\
+\bottomrule
+\end{tabularx}
+\caption{Diccionario de datos: Menú y Especialidades culinarias.}
+\label{tab:dict_menu}
+\end{table}
+
+\newpage
+\subsection{Módulo de Mesas, Reservaciones y Horarios}
+
+\begin{table}[h!]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{l l l p{2.8cm} X}
+\toprule
+\textbf{Columna} & \textbf{Tipo Dato} & \textbf{Nulo} & \textbf{Claves / Constraints} & \textbf{Descripción Funcional} \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.mesas} (Mesas físicas del establecimiento)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador o número físico de la mesa. \\
+\texttt{sillas} & \texttt{INTEGER} & No & \texttt{CHECK (sillas > 0)} & Número de puestos o capacidad de comensales. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.reservaciones} (Tabla particionada de reservaciones solicitadas)} \\
+\texttt{id} & \texttt{INTEGER} & No & \texttt{PRIMARY KEY} & Identificador de la reservación. \\
+\texttt{cliente\_id} & \texttt{INTEGER} & No & \texttt{FK -> usuarios(id)} & Cliente titular que realiza la reservación. \\
+\texttt{cantidad} & \texttt{INTEGER} & No & \texttt{CHECK (cantidad > 0)} & Número de personas que asistirán. \\
+\texttt{estado} & \texttt{INTEGER} & No & \texttt{CHECK (1,2,3,4)} & 1=Pendiente, 2=Confirmada, 3=Completada, 4=Cancelada. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.horarios} (Asignación temporal de mesa a cada reservación)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador de agenda. \\
+\texttt{mesa\_id} & \texttt{INTEGER} & No & \texttt{FK -> mesas(id)} & Mesa asignada a la reserva. \\
+\texttt{reservacion\_id} & \texttt{INTEGER} & No & \texttt{FK -> reservaciones} & Reservación vinculada. \\
+\texttt{inicio} & \texttt{TIMESTAMP} & No & -- & Fecha y hora programada de inicio del turno. \\
+\texttt{duracion} & \texttt{INTERVAL} & No & \texttt{CHECK (<= '2 hours')} & Duración estimada (fijada en 2 horas). \\
+\bottomrule
+\end{tabularx}
+\caption{Diccionario de datos: Mesas, Reservaciones y Horarios.}
+\label{tab:dict_mesas_reservas}
+\end{table}
+
+\subsection{Módulo de Pedidos, Órdenes y Preparaciones}
+
+\begin{table}[h!]
+\centering
+\scriptsize
+\begin{tabularx}{\textwidth}{l l l p{2.8cm} X}
+\toprule
+\textbf{Columna} & \textbf{Tipo Dato} & \textbf{Nulo} & \textbf{Claves / Constraints} & \textbf{Descripción Funcional} \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.pedidos} (Cabecera de comanda en mesa)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador del pedido. \\
+\texttt{cliente\_id} & \texttt{INTEGER} & No & \texttt{FK -> usuarios(id)} & Cliente que realiza el consumo. \\
+\texttt{mesero\_id} & \texttt{INTEGER} & No & \texttt{FK -> usuarios(id)} & Empleado con rol Mesero que atiende. \\
+\texttt{mesa\_id} & \texttt{INTEGER} & Sí & \texttt{FK -> mesas(id)} & Mesa donde se sirve el pedido. \\
+\texttt{reservacion\_id} & \texttt{INTEGER} & Sí & \texttt{FK -> reservaciones} & Reserva asociada si el pedido deriva de ella. \\
+\texttt{creado} & \texttt{TIMESTAMPTZ} & No & \texttt{DEFAULT now()} & Fecha y hora exacta de apertura del pedido. \\
+\texttt{token} & \texttt{TEXT} & Sí & \texttt{UNIQUE} & Token de idempotencia contra reenvíos HTTP. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.ordenes} (Detalle de platos solicitados en un pedido)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador de línea de pedido. \\
+\texttt{plato\_id} & \texttt{INTEGER} & No & \texttt{FK -> platos(id)} & Ítem culinario ordenado. \\
+\texttt{pedido\_id} & \texttt{INTEGER} & No & \texttt{FK -> pedidos(id)} & Pedido cabecera al que pertenece. \\
+\texttt{estado} & \texttt{INTEGER} & No & \texttt{CHECK (1,2,3,4)} & 1=Solicitada, 2=En preparación, 4=Preparada, 3=Entregada. \\
+\texttt{cantidad} & \texttt{INTEGER} & No & \texttt{CHECK (cantidad > 0)} & Número de porciones solicitadas. \\
+\texttt{solicitado} & \texttt{TIMESTAMPTZ} & No & \texttt{DEFAULT now()} & Marca temporal del envío a cocina. \\
+\texttt{precio\_unitario} & \texttt{NUMERIC} & Sí & \texttt{CHECK (>= 0)} & Precio congelado al momento del registro. \\
+\texttt{preparado} & \texttt{TIMESTAMPTZ} & Sí & -- & Instante en que cocina finaliza el plato. \\
+\texttt{entregado} & \texttt{TIMESTAMPTZ} & Sí & -- & Instante en que el mesero sirve en mesa. \\
+\midrule
+\multicolumn{5}{l}{\textbf{Tabla: public.preparaciones} (Asignación de cocinero a una orden)} \\
+\texttt{id} & \texttt{SERIAL} & No & \texttt{PRIMARY KEY} & Identificador de preparación. \\
+\texttt{cocinero\_id} & \texttt{INTEGER} & No & \texttt{FK -> usuarios(id)} & Cocinero acreditado que elabora el plato. \\
+\texttt{orden\_id} & \texttt{INTEGER} & No & \texttt{FK -> ordenes(id)} & Orden específica asignada. \\
+\bottomrule
+\end{tabularx}
+\caption{Diccionario de datos: Pedidos, Órdenes y Preparaciones.}
+\label{tab:dict_pedidos}
+\end{table}
+
+\newpage
+\section{Arquitectura Física: Tablespaces y Particionamiento}
+
+\subsection{Configuración de Tablespaces en PostgreSQL}
+Conforme al Requisito Técnico 6.1, la base de datos aprovecha múltiples espacios de tablas (\textit{tablespaces}) ubicados en rutas independientes del disco duro para segregar físicamente las cargas de entrada/salida (I/O). En el clúster se encuentran configurados los tablespaces de reservaciones:
+\begin{itemize}[leftmargin=*]
+    \item \texttt{ts\_res\_1}: Directorio físico de almacenamiento para el primer tramo de reservaciones.
+    \item \texttt{ts\_res\_2}: Directorio físico de almacenamiento para el segundo tramo de reservaciones.
+    \item \texttt{ts\_res\_3}: Directorio físico de almacenamiento para el tercer tramo de reservaciones históricas.
+\end{itemize}
+
+Esta arquitectura permite separar los discos mecánicos o volúmenes SSD, balanceando la concurrencia entre transacciones activas de lectura y escrituras analíticas.
+
+\subsection{Estrategia de Particionamiento de Tablas}
+La tabla \texttt{reservaciones} se encuentra particionada por rangos (\texttt{PARTITION BY RANGE (id)}), distribuyendo sus registros en particiones hijas alojadas en los tablespaces independientes:
+\begin{lstlisting}[style=sqlstyle]
+-- Tabla principal declarativa particionada
+CREATE TABLE public.reservaciones (
+    id integer NOT NULL,
+    cliente_id integer NOT NULL,
+    cantidad integer NOT NULL,
+    estado integer NOT NULL,
+    CONSTRAINT ck_reservaciones_cantidad_positiva CHECK (cantidad > 0),
+    CONSTRAINT ck_reservaciones_estado CHECK (estado IN (1, 2, 3, 4))
+) PARTITION BY RANGE (id);
+
+-- Asignación de particiones a sus respectivos tablespaces
+CREATE TABLE public.reservaciones_1 PARTITION OF public.reservaciones
+    FOR VALUES FROM (1) TO (15001) TABLESPACE ts_res_1;
+
+CREATE TABLE public.reservaciones_2 PARTITION OF public.reservaciones
+    FOR VALUES FROM (15001) TO (30001) TABLESPACE ts_res_2;
+
+CREATE TABLE public.reservaciones_3 PARTITION OF public.reservaciones
+    FOR VALUES FROM (30001) TO (45001) TABLESPACE ts_res_3;
+
+-- Partición por defecto para cubrir crecimientos futuros sin bloqueo
+CREATE TABLE public.reservaciones_futuras PARTITION OF public.reservaciones DEFAULT;
+\end{lstlisting}
+
+\paragraph{Particionamiento por Fechas (Diseño de Eventos):}
+Para tablas de series temporales de alta cardinalidad como \texttt{ordenes} y \texttt{pedidos}, el particionamiento idóneo sobre los tablespaces definidos se formula mediante rangos de fechas (\texttt{RANGE (solicitado)}), permitiendo la exclusión de particiones (\textit{Partition Pruning}) en consultas mensuales o anuales:
+\begin{lstlisting}[style=sqlstyle]
+-- Ejemplo de particionamiento temporal por meses para ventas
+CREATE TABLE public.ordenes_part (
+    id SERIAL,
+    solicitado TIMESTAMPTZ NOT NULL,
+    ...
+) PARTITION BY RANGE (solicitado);
+
+CREATE TABLE public.ordenes_2026_q3 PARTITION OF public.ordenes_part
+    FOR VALUES FROM ('2026-07-01') TO ('2026-10-01') TABLESPACE ts_res_2;
+
+CREATE TABLE public.ordenes_2026_q4 PARTITION OF public.ordenes_part
+    FOR VALUES FROM ('2026-10-01') TO ('2027-01-01') TABLESPACE ts_res_1;
+\end{lstlisting}
+
+\newpage
+\section{Integridad de Datos y Disparadores (Triggers)}
+
+El Requisito Técnico 6.3 exige la implementación de mecanismos de integridad relacional activa en el motor de base de datos. En el script \texttt{01\_integridad\_y\_triggers.sql} se implementaron cinco disparadores (\textit{triggers}) clave en PL/pgSQL:
+
+\subsection{Trigger 1: Prevención de Cruces de Reservaciones (2 Horas)}
+Evita matemáticamente que se solapen dos reservaciones no canceladas en la misma mesa durante un bloque mínimo de dos horas:
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE FUNCTION public.fn_trg_validar_cruce_reserva()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_capacidad_mesa integer;
+    v_personas_reserva integer;
+    v_estado_reserva integer;
+    v_conflicto_id integer;
+    v_duracion interval;
+BEGIN
+    SELECT cantidad, estado INTO v_personas_reserva, v_estado_reserva
+    FROM public.reservaciones WHERE id = NEW.reservacion_id;
+
+    IF v_estado_reserva = 4 THEN RETURN NEW; END IF; -- Cancelada
+
+    SELECT sillas INTO v_capacidad_mesa FROM public.mesas WHERE id = NEW.mesa_id;
+    IF v_personas_reserva > v_capacidad_mesa THEN
+        RAISE EXCEPTION 'Capacidad excedida: Reserva para % personas en mesa de % sillas.',
+            v_personas_reserva, v_capacidad_mesa;
+    END IF;
+
+    v_duracion := GREATEST(COALESCE(NEW.duracion, interval '2 hours'), interval '2 hours');
+
+    SELECT h.id INTO v_conflicto_id
+    FROM public.horarios h
+    JOIN public.reservaciones r ON r.id = h.reservacion_id
+    WHERE h.mesa_id = NEW.mesa_id AND r.estado <> 4
+      AND h.id <> COALESCE(NEW.id, -1) AND h.reservacion_id <> NEW.reservacion_id
+      AND tsrange(h.inicio, h.inicio + GREATEST(h.duracion, interval '2 hours'), '[)')
+       && tsrange(NEW.inicio, NEW.inicio + v_duracion, '[)')
+    LIMIT 1;
+
+    IF v_conflicto_id IS NOT NULL THEN
+        RAISE EXCEPTION 'Cruce de horario: Mesa #% ya reservada (conflicto #%).',
+            NEW.mesa_id, v_conflicto_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validar_cruce_reserva
+BEFORE INSERT OR UPDATE OF mesa_id, inicio, duracion ON public.horarios
+FOR EACH ROW EXECUTE FUNCTION public.fn_trg_validar_cruce_reserva();
+\end{lstlisting}
+
+\subsection{Trigger 2: Validación Estricta de Cupo Total del Restaurante}
+Garantiza que la sumatoria de comensales concurrentes en la ventana horaria no supere el cupo total del restaurante ($\sum \text{sillas}$):
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE FUNCTION public.fn_trg_validar_cupo_restaurante()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_cupo_total integer;
+    v_ocupacion_pico integer;
+    v_personas_nuevas integer;
+BEGIN
+    SELECT cantidad INTO v_personas_nuevas FROM public.reservaciones WHERE id = NEW.reservacion_id;
+    SELECT COALESCE(SUM(sillas), 0) INTO v_cupo_total FROM public.mesas;
+
+    WITH ocupaciones AS (
+        SELECT h.inicio, h.inicio + GREATEST(h.duracion, interval '2 hours') AS fin, r.cantidad
+        FROM public.horarios h JOIN public.reservaciones r ON r.id = h.reservacion_id
+        WHERE r.estado <> 4 AND h.reservacion_id <> NEW.reservacion_id
+          AND h.inicio < NEW.inicio + interval '2 hours'
+          AND h.inicio + GREATEST(h.duracion, interval '2 hours') > NEW.inicio
+    ),
+    puntos AS (
+        SELECT NEW.inicio AS t UNION SELECT inicio FROM ocupaciones WHERE inicio >= NEW.inicio
+    )
+    SELECT COALESCE(MAX((SELECT COALESCE(SUM(cantidad),0) FROM ocupaciones o WHERE o.inicio<=p.t AND o.fin>p.t)),0)
+    INTO v_ocupacion_pico FROM puntos p;
+
+    IF (v_ocupacion_pico + v_personas_nuevas) > v_cupo_total THEN
+        RAISE EXCEPTION 'Cupo total superado: Capacidad=%, concurrencia solicitada=%.',
+            v_cupo_total, (v_ocupacion_pico + v_personas_nuevas);
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validar_cupo_restaurante
+BEFORE INSERT OR UPDATE OF inicio, duracion ON public.horarios
+FOR EACH ROW EXECUTE FUNCTION public.fn_trg_validar_cupo_restaurante();
+\end{lstlisting}
+
+\subsection{Trigger 3: Acreditación de Especialidad al Cocinero}
+Comprueba que el cocinero que toma una orden posea el rol 'Cocinero' y tenga registrada la especialidad del plato correspondiente:
+\begin{lstlisting}[style=sqlstyle]
+CREATE OR REPLACE FUNCTION public.fn_trg_validar_preparacion_cocinero()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_es_cocinero boolean;
+    v_tiene_especialidad boolean;
+    v_plato_id integer;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1 FROM public.actuaciones a JOIN public.roles r ON r.id = a.rol_id
+        WHERE a.usuario_id = NEW.cocinero_id AND r.nombre = 'Cocinero'
+    ) INTO v_es_cocinero;
+
+    IF NOT v_es_cocinero THEN
+        RAISE EXCEPTION 'El usuario #% no tiene el rol de Cocinero.', NEW.cocinero_id;
+    END IF;
+
+    SELECT plato_id INTO v_plato_id FROM public.ordenes WHERE id = NEW.orden_id;
+
+    SELECT EXISTS (
+        SELECT 1 FROM public.especialidades
+        WHERE cocinero_id = NEW.cocinero_id AND plato_id = v_plato_id
+    ) INTO v_tiene_especialidad;
+
+    IF NOT v_tiene_especialidad THEN
+        RAISE EXCEPTION 'Especialidad no autorizada: Cocinero #% no autorizado para plato #%.',
+            NEW.cocinero_id, v_plato_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validar_preparacion_cocinero
+BEFORE INSERT OR UPDATE OF cocinero_id, orden_id ON public.preparaciones
+FOR EACH ROW EXECUTE FUNCTION public.fn_trg_validar_preparacion_cocinero();
+\end{lstlisting}
+
+\newpage
+\section{Consultas SQL de los Casos de Uso y Reportes}
+
+El script \texttt{02\_consultas\_casos\_de\_uso.sql} consolida las consultas relacionales requeridas. A continuación se presentan las más representativas:
+
+\subsection{CU-01: Cupo Total del Restaurante y Aforo}
+\begin{lstlisting}[style=sqlstyle]
+SELECT
+    count(id)               AS total_mesas,
+    sum(sillas)             AS cupo_total_restaurante,
+    min(sillas)             AS capacidad_minima_mesa,
+    max(sillas)             AS capacidad_maxima_mesa,
+    round(avg(sillas), 2)   AS promedio_sillas_por_mesa
+FROM public.mesas;
+\end{lstlisting}
+
+\subsection{CU-02: Disponibilidad y Alerta de Reservas para el Maitre}
+\begin{lstlisting}[style=sqlstyle]
+-- Alertas de reservas proximas a comenzar en ventana <= 2 horas
+SELECT
+    r.id AS reservacion_id,
+    u.nombre AS cliente,
+    h.mesa_id,
+    h.inicio,
+    (h.inicio - LOCALTIMESTAMP) AS tiempo_restante,
+    r.cantidad AS personas
+FROM public.reservaciones r
+JOIN public.usuarios u ON u.id = r.cliente_id
+JOIN public.horarios h ON h.reservacion_id = r.id
+WHERE r.estado IN (1, 2)
+  AND h.inicio >= LOCALTIMESTAMP
+  AND h.inicio <= LOCALTIMESTAMP + interval '2 hours'
+ORDER BY h.inicio ASC;
+\end{lstlisting}
+
+\subsection{CU-05: Cola de Cocina Priorizada por Tiempo Descendente}
+El cocinero consulta únicamente las órdenes pendientes que sabe cocinar, priorizando los platos más demorados de primero:
+\begin{lstlisting}[style=sqlstyle]
+SELECT
+    o.id AS orden_id,
+    ped.mesa_id,
+    p.nombre AS plato,
+    p.tiempo AS tiempo_preparacion,
+    o.cantidad,
+    o.solicitado
+FROM public.ordenes o
+JOIN public.platos p ON p.id = o.plato_id
+JOIN public.pedidos ped ON ped.id = o.pedido_id
+JOIN public.especialidades esp ON esp.plato_id = p.id AND esp.cocinero_id = :p_cocinero_id
+WHERE o.estado = 1 -- Solicitadas y disponibles
+ORDER BY p.tiempo DESC, o.solicitado ASC;
+\end{lstlisting}
+
+\subsection{CU-07: Reportes Estadísticos Analíticos}
+\begin{lstlisting}[style=sqlstyle]
+-- Reporte de Ventas por periodo mensual (date_trunc)
+SELECT
+    date_trunc('month', COALESCE(o.entregado, o.solicitado) AT TIME ZONE 'America/Bogota')::date AS periodo,
+    count(DISTINCT o.pedido_id) AS total_pedidos,
+    sum(o.cantidad) AS platos_servidos,
+    sum(o.cantidad * o.precio_unitario) FILTER (WHERE o.entregado IS NOT NULL) AS ventas_verificadas,
+    sum(o.cantidad * COALESCE(o.precio_unitario, p.precio)) AS facturacion_total
+FROM public.ordenes o
+JOIN public.platos p ON p.id = o.plato_id
+WHERE o.estado = 3 -- Entregado
+GROUP BY 1 ORDER BY 1;
+
+-- Ranking Top de Platos mas solicitados
+SELECT
+    p.nombre AS plato,
+    t.nombre AS categoria,
+    sum(o.cantidad) AS unidades_vendidas,
+    sum(o.cantidad * COALESCE(o.precio_unitario, p.precio)) AS facturacion
+FROM public.ordenes o
+JOIN public.platos p ON p.id = o.plato_id
+JOIN public.tipos t ON t.id = p.tipo_id
+GROUP BY p.id, p.nombre, t.nombre
+ORDER BY unidades_vendidas DESC LIMIT 10;
+\end{lstlisting}
+
+\newpage
+\section{Estrategia de Pruebas y Validación}
+
+\subsection{Conjunto de Datos de Prueba Determinista}
+Para garantizar la reproducibilidad científica de las evaluaciones, se utilizó la semilla determinista \texttt{03\_datos\_prueba\_Garcia\_Pico.sql} con factor \texttt{data\_seed = 42}. Esta semilla genera:
+\begin{itemize}
+    \item 32 mesas con configuraciones variadas de 2 a 8 sillas.
+    \item Plantilla completa de empleados (4 Maitres, 12 Cocineros con capacitación cruzada, 10 Meseros y 2 Administradores).
+    \item Catálogo completo de 24 platos clasificados en Entradas, Fuertes, Postres y Bebidas.
+    \item 10.000 clientes sintéticos con más de 18.000 reservaciones y órdenes históricas.
+\end{itemize}
+
+\subsection{Pruebas Automatizadas de Integración}
+La suite de pruebas disponible en \texttt{tests/integration.php} valida exhaustivamente:
+\begin{enumerate}
+    \item \textbf{Aislamiento de Entorno:} Restricción estricta sobre la base de pruebas \texttt{restaurante\_test} para impedir mutación accidental de datos en producción.
+    \item \textbf{Idempotencia:} Uso de advisory locks (\texttt{pg\_advisory\_xact\_lock}) y tokens de un solo uso que rechazan duplicación de pedidos ante reenvíos concurrentes.
+    \item \textbf{Control de Estados y Privilegios:} Imposibilidad de que un mesero entregue un pedido antes de ser preparado, o que un cocinero sin especialidad tome una comanda.
+\end{enumerate}
+
+\newpage
+\section{Guía y Libreto de Sustentación Oral (Rúbrica 20\%)}
+
+Para la demostración en vivo ante el docente titular, se recomienda seguir el siguiente guion estructurado:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Introducción y Modelo Relacional (3 min):}
+    \begin{itemize}
+        \item Proyectar el diagrama ER destacando la entidad asociativa \texttt{actuaciones} que desacopla los usuarios de sus roles, y la entidad asociativa \texttt{especialidades} que enlaza a cocineros con platos autorizados.
+        \item Demostrar el diccionario de datos y las restricciones de no nulidad y valores positivos.
+    \end{itemize}
+    \item \textbf{Tablespaces y Particionamiento Físico (2 min):}
+    \begin{itemize}
+        \item Ejecutar en terminal: \texttt{\textbackslash db+} en \texttt{psql} para evidenciar los tablespaces creados en directorios separados del disco duro.
+        \item Consultar el catálogo: \texttt{SELECT relname, relpartbound FROM pg\_class WHERE relispartition = true;} para mostrar las particiones activas de \texttt{reservaciones} y la partición predeterminada.
+    \end{itemize}
+    \item \textbf{Demostración de Disparadores de Integridad (3 min):}
+    \begin{itemize}
+        \item \textit{Caso Cruce de Horario:} Intentar insertar un horario sobre una mesa que ya esté reservada en la misma ventana de 2 horas. Mostrar el mensaje de error provocado por el trigger \texttt{trg\_validar\_cruce\_reserva}.
+        \item \textit{Caso Especialidad Culinaria:} Intentar asignar en \texttt{preparaciones} a un cocinero sobre un plato que no tiene registrado en \texttt{especialidades}. Mostrar la excepción del trigger \texttt{trg\_validar\_preparacion\_cocinero}.
+    \end{itemize}
+    \item \textbf{Ejecución de Casos de Uso y Reportes (4 min):}
+    \begin{itemize}
+        \item Ejecutar la consulta del CU-05 mostrando cómo la cola de cocina se ordena estrictamente por tiempo descendente de preparación.
+        \item Ejecutar el reporte de ventas con \texttt{date\_trunc('month', ...)} y el ranking de platos más vendidos.
+    \end{itemize}
+\end{enumerate}
+
+\section{Declaración de Uso de Inteligencia Artificial}
+En estricto cumplimiento del \textbf{Requisito 9} de la especificación del proyecto, se declara que para el análisis de requisitos, diseño de scripts modulares, estructuración del informe formal en \LaTeX\ y codificación colaborativa se utilizaron herramientas de inteligencia artificial de \textit{live coding} (Antigravity AI / Google DeepMind).
+
+El estudiante asume la total autoría y responsabilidad intelectual y técnica sobre el código, los disparadores, las consultas SQL y el documento entregado, habiendo validado y verificado cada una de las pruebas y encontrándose plenamente capacitado para su sustentación técnica oral ante el docente.
+
+\end{document}
+
