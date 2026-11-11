@@ -104,7 +104,7 @@
     \begin{minipage}[t]{0.48\textwidth}
         \textbf{Presentado por:} \\[0.2cm]
         Estudiante(s): \\
-        \textit{García \& Pico} \\
+        \textit{Maria Alejandra García \& Samuel Isaias Pico} \\
         Ingeniería de Sistemas
     \end{minipage}
     \hfill
@@ -211,135 +211,17 @@ A continuación se detallan los siete casos de uso troncales y las funcionalidad
 \section{Diseño de la Base de Datos y Modelo Entidad-Relación}
 
 \subsection{Modelo Entidad-Relación Obligatorio}
-El sistema implementa de manera estricta el esquema relacional de 12 entidades especificado por la cátedra. La Figura~\ref{fig:diagrama_er} ilustra la topología relacional y las dependencias foráneas.
+El sistema implementa de manera estricta el esquema relacional de 12 entidades especificado por la cátedra. La Figura~\ref{fig:placeholder} ilustra la topología relacional y las dependencias foráneas.
 
-\begin{figure}[h!]
-\centering
-\begin{tikzpicture}[
-    scale=0.85, every node/.style={transform shape},
-    entity/.style={rectangle, draw=pujblue, fill=blue!5, thick, rounded corners=2pt, minimum width=3.2cm, inner sep=6pt},
-    rel/.style={-{Latex[length=2.5mm]}, thick, pujblue!80!black},
-    textlabel/.style={font=\scriptsize\ttfamily}
-]
-    % Filas del diagrama
-    % Nivel 1: Menú y Tipos
-    \node[entity] (tipos) at (0, 8) {
-        \textbf{Tipos} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize nombre: TEXT
-    };
-    
-    \node[entity] (platos) at (5, 8) {
-        \textbf{Platos} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize tipo\_id: INT (FK) \\
-        \scriptsize nombre: TEXT \\
-        \scriptsize tiempo: INTERVAL \\
-        \scriptsize precio: NUMERIC
-    };
-    
-    \node[entity] (ordenes) at (11, 8) {
-        \textbf{Ordenes} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize plato\_id: INT (FK) \\
-        \scriptsize pedido\_id: INT (FK) \\
-        \scriptsize estado: INT \\
-        \scriptsize cantidad: INT \\
-        \scriptsize solicitado: TIMESTAMPTZ
-    };
-
-    % Nivel 2: Especialidades y Preparaciones
-    \node[entity] (esp) at (2.5, 4.5) {
-        \textbf{Especialidades} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize cocinero\_id: INT (FK) \\
-        \scriptsize plato\_id: INT (FK)
-    };
-    
-    \node[entity] (prep) at (7.5, 4.5) {
-        \textbf{Preparaciones} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize cocinero\_id: INT (FK) \\
-        \scriptsize orden\_id: INT (FK)
-    };
-    
-    \node[entity] (pedidos) at (11, 4.5) {
-        \textbf{Pedidos} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize cliente\_id: INT (FK) \\
-        \scriptsize mesero\_id: INT (FK)
-    };
-
-    % Nivel 3: Usuarios, Roles, Actuaciones
-    \node[entity] (act) at (11, 1) {
-        \textbf{Actuaciones} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize rol\_id: INT (FK) \\
-        \scriptsize usuario\_id: INT (FK)
-    };
-
-    \node[entity] (roles) at (11, -2) {
-        \textbf{Roles} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize nombre: TEXT
-    };
-
-    \node[entity] (usuarios) at (5.5, 1) {
-        \textbf{Usuarios} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize nombre: TEXT \\
-        \scriptsize clave: BYTEA \\
-        \scriptsize fecha\_clave: TIMESTAMP
-    };
-
-    % Nivel 4: Reservaciones, Horarios, Mesas
-    \node[entity] (res) at (0.5, 1) {
-        \textbf{Reservaciones} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize cliente\_id: INT (FK) \\
-        \scriptsize cantidad: INT \\
-        \scriptsize estado: INT
-    };
-
-    \node[entity] (horarios) at (3.5, -2) {
-        \textbf{Horarios} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize mesa\_id: INT (FK) \\
-        \scriptsize reservacion\_id: INT (FK) \\
-        \scriptsize inicio: TIMESTAMP \\
-        \scriptsize duracion: INTERVAL
-    };
-
-    \node[entity] (mesas) at (8, -2) {
-        \textbf{Mesas} \\ \hline
-        \scriptsize \underline{id}: SERIAL \\
-        \scriptsize sillas: INT
-    };
-
-    % Conexiones relacionales
-    \draw[rel] (tipos) -- (platos) node[midway,above,textlabel]{1:N};
-    \draw[rel] (platos) -- (ordenes) node[midway,above,textlabel]{1:N};
-    \draw[rel] (platos) -- (esp) node[midway,right,textlabel]{1:N};
-    \draw[rel] (ordenes) -- (prep) node[midway,above,textlabel]{1:N};
-    \draw[rel] (pedidos) -- (ordenes) node[midway,right,textlabel]{1:N};
-    
-    \draw[rel] (usuarios) -- (esp) node[midway,left,textlabel]{1:N};
-    \draw[rel] (usuarios) -- (prep) node[midway,right,textlabel]{1:N};
-    \draw[rel] (usuarios) -- (pedidos) node[midway,above,textlabel]{1:N};
-    \draw[rel] (usuarios) -- (res) node[midway,above,textlabel]{1:N};
-    \draw[rel] (usuarios) -- (act) node[midway,above,textlabel]{1:N};
-    
-    \draw[rel] (roles) -- (act) node[midway,right,textlabel]{1:N};
-    \draw[rel] (res) -- (horarios) node[midway,left,textlabel]{1:N};
-    \draw[rel] (mesas) -- (horarios) node[midway,above,textlabel]{1:N};
-
-\end{tikzpicture}
-\caption{Diagrama Entidad-Relación formal obligatorio del sistema del restaurante.}
-\label{fig:diagrama_er}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=1\linewidth]{image.png}
+    \caption{Diagrama E-R}
+    \label{fig:placeholder}
 \end{figure}
 
 \subsection{Normalización del Esquema}
-El diseño satisface la \textbf{Tercera Forma Normal (3FN)} y la \textbf{Forma Normal de Boyce-Codd (FNBC)}:
+El diseño satisface la \textbf{Tercera Forma Normal (3FN)}:
 \begin{enumerate}
     \item \textbf{1FN:} Todos los atributos son atómicos y no existen grupos repetitivos. Los roles múltiples de los usuarios se resuelven a través de la tabla asociativa \texttt{actuaciones}.
     \item \textbf{2FN:} Toda columna que no forma parte de una clave candidata depende por completo de la clave primaria completa (claves subrogadas simples mediante secuencias \texttt{SERIAL}).
@@ -772,38 +654,5 @@ La suite de pruebas disponible en \texttt{tests/integration.php} valida exhausti
     \item \textbf{Control de Estados y Privilegios:} Imposibilidad de que un mesero entregue un pedido antes de ser preparado, o que un cocinero sin especialidad tome una comanda.
 \end{enumerate}
 
-\newpage
-\section{Guía y Libreto de Sustentación Oral (Rúbrica 20\%)}
-
-Para la demostración en vivo ante el docente titular, se recomienda seguir el siguiente guion estructurado:
-
-\begin{enumerate}[leftmargin=*]
-    \item \textbf{Introducción y Modelo Relacional (3 min):}
-    \begin{itemize}
-        \item Proyectar el diagrama ER destacando la entidad asociativa \texttt{actuaciones} que desacopla los usuarios de sus roles, y la entidad asociativa \texttt{especialidades} que enlaza a cocineros con platos autorizados.
-        \item Demostrar el diccionario de datos y las restricciones de no nulidad y valores positivos.
-    \end{itemize}
-    \item \textbf{Tablespaces y Particionamiento Físico (2 min):}
-    \begin{itemize}
-        \item Ejecutar en terminal: \texttt{\textbackslash db+} en \texttt{psql} para evidenciar los tablespaces creados en directorios separados del disco duro.
-        \item Consultar el catálogo: \texttt{SELECT relname, relpartbound FROM pg\_class WHERE relispartition = true;} para mostrar las particiones activas de \texttt{reservaciones} y la partición predeterminada.
-    \end{itemize}
-    \item \textbf{Demostración de Disparadores de Integridad (3 min):}
-    \begin{itemize}
-        \item \textit{Caso Cruce de Horario:} Intentar insertar un horario sobre una mesa que ya esté reservada en la misma ventana de 2 horas. Mostrar el mensaje de error provocado por el trigger \texttt{trg\_validar\_cruce\_reserva}.
-        \item \textit{Caso Especialidad Culinaria:} Intentar asignar en \texttt{preparaciones} a un cocinero sobre un plato que no tiene registrado en \texttt{especialidades}. Mostrar la excepción del trigger \texttt{trg\_validar\_preparacion\_cocinero}.
-    \end{itemize}
-    \item \textbf{Ejecución de Casos de Uso y Reportes (4 min):}
-    \begin{itemize}
-        \item Ejecutar la consulta del CU-05 mostrando cómo la cola de cocina se ordena estrictamente por tiempo descendente de preparación.
-        \item Ejecutar el reporte de ventas con \texttt{date\_trunc('month', ...)} y el ranking de platos más vendidos.
-    \end{itemize}
-\end{enumerate}
-
-\section{Declaración de Uso de Inteligencia Artificial}
-En estricto cumplimiento del \textbf{Requisito 9} de la especificación del proyecto, se declara que para el análisis de requisitos, diseño de scripts modulares, estructuración del informe formal en \LaTeX\ y codificación colaborativa se utilizaron herramientas de inteligencia artificial de \textit{live coding} (Antigravity AI / Google DeepMind).
-
-El estudiante asume la total autoría y responsabilidad intelectual y técnica sobre el código, los disparadores, las consultas SQL y el documento entregado, habiendo validado y verificado cada una de las pruebas y encontrándose plenamente capacitado para su sustentación técnica oral ante el docente.
 
 \end{document}
-
